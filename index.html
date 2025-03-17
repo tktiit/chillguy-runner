@@ -2,7 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
     <meta
       http-equiv="Cache-Control"
       content="no-cache, no-store, must-revalidate"
@@ -11,14 +20,62 @@
     <meta http-equiv="Expires" content="0" />
     <title>Chill Guy Runner</title>
     <link rel="stylesheet" href="style.css?v=" + Math.random() />
-    <script>
-      // Prevent caching of game.js
-      const gameScript = document.createElement("script");
-      gameScript.src = "game.js?v=" + Math.random();
-      document.head.appendChild(gameScript);
-    </script>
   </head>
   <body>
     <canvas id="gameCanvas"></canvas>
+
+    <!-- Hidden container for preloading images -->
+    <div style="display: none">
+      <img id="playerImage" src="playerImage.png" alt="Player" />
+      <img id="tokenImage" src="tokenImage.png" alt="Token" />
+      <img id="obstacleImage" src="obstacleImage.png" alt="Obstacle" />
+    </div>
+
+    <script>
+      // Prevent default touch behaviors
+      document.addEventListener(
+        "touchmove",
+        function (e) {
+          e.preventDefault();
+        },
+        { passive: false }
+      );
+
+      document.addEventListener(
+        "touchstart",
+        function (e) {
+          e.preventDefault();
+        },
+        { passive: false }
+      );
+
+      // Wait for images to load before starting the game
+      const imagesToLoad = ["playerImage", "tokenImage", "obstacleImage"];
+      let loadedImages = 0;
+
+      function handleImageLoad() {
+        loadedImages++;
+        if (loadedImages === imagesToLoad.length) {
+          // All images loaded, now load the game
+          const gameScript = document.createElement("script");
+          gameScript.src = "game.js?v=" + Math.random();
+          document.body.appendChild(gameScript);
+        }
+      }
+
+      // Set up load handlers for all images
+      imagesToLoad.forEach((imgId) => {
+        const img = document.getElementById(imgId);
+        if (img.complete) {
+          handleImageLoad();
+        } else {
+          img.addEventListener("load", handleImageLoad);
+        }
+        img.addEventListener("error", () => {
+          console.error(`Failed to load ${imgId}`);
+          handleImageLoad(); // Continue loading game even if image fails
+        });
+      });
+    </script>
   </body>
 </html>
