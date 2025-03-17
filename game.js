@@ -1,7 +1,7 @@
 // Game Configuration
 const CONFIG = {
   JUMP_VELOCITY: -20,
-  GRAVITY: 0.6,
+  GRAVITY: 0.5,
   GROUND_HEIGHT_RATIO: 0.75,
   GROUND_COLOR: {
     TOP: "#90EE90",
@@ -13,14 +13,29 @@ const CONFIG = {
     METER_HEIGHT: 30,
   },
   SPAWN_RATES: {
-    TOKEN: 0.02,
-    OBSTACLE: 0.01,
+    TOKEN: 0.01,
+    OBSTACLE: 0.005,
   },
-  MOVEMENT_SPEED: 3,
+  MOVEMENT_SPEED: 4,
   SCORE_INCREMENT: 10,
   CHILL_METER: {
     INCREMENT: 5,
     DECREMENT: 20,
+  },
+  // New size configurations
+  SIZES: {
+    PLAYER: {
+      BASE_RATIO: 0.2, // 8% of smaller dimension
+      MAX_SIZE: 150, // Maximum size in pixels
+    },
+    TOKEN: {
+      BASE_RATIO: 0.1, // 6% of canvas width
+      MAX_SIZE: 100, // Maximum size in pixels
+    },
+    OBSTACLE: {
+      BASE_RATIO: 0.1, // 8% of canvas width
+      MAX_SIZE: 100, // Maximum size in pixels
+    },
   },
 };
 
@@ -62,7 +77,10 @@ function initializeGame() {
     gameState.canvas.width,
     gameState.canvas.height
   );
-  const baseSize = smallerDimension * 0.08;
+  const baseSize = Math.min(
+    CONFIG.SIZES.PLAYER.MAX_SIZE,
+    smallerDimension * CONFIG.SIZES.PLAYER.BASE_RATIO
+  );
 
   // Initialize player
   gameState.player = {
@@ -103,7 +121,10 @@ function handleResize() {
     gameState.canvas.width,
     gameState.canvas.height
   );
-  const baseSize = smallerDimension * 0.08;
+  const baseSize = Math.min(
+    CONFIG.SIZES.PLAYER.MAX_SIZE,
+    smallerDimension * CONFIG.SIZES.PLAYER.BASE_RATIO
+  );
 
   // Update player
   gameState.player.width = baseSize;
@@ -125,7 +146,10 @@ function handleResize() {
 
 // Game object spawners
 function spawnToken() {
-  const tokenSize = Math.min(30, gameState.canvas.width * 0.06);
+  const tokenSize = Math.min(
+    CONFIG.SIZES.TOKEN.MAX_SIZE,
+    gameState.canvas.width * CONFIG.SIZES.TOKEN.BASE_RATIO
+  );
   return {
     x: gameState.canvas.width,
     y: gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO - tokenSize,
@@ -137,7 +161,10 @@ function spawnToken() {
 }
 
 function spawnObstacle() {
-  const obstacleSize = Math.min(40, gameState.canvas.width * 0.08);
+  const obstacleSize = Math.min(
+    CONFIG.SIZES.OBSTACLE.MAX_SIZE,
+    gameState.canvas.width * CONFIG.SIZES.OBSTACLE.BASE_RATIO
+  );
   return {
     x: gameState.canvas.width,
     y: gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO - obstacleSize,
@@ -161,7 +188,10 @@ function resetGame() {
     gameState.canvas.width,
     gameState.canvas.height
   );
-  const baseSize = smallerDimension * 0.08;
+  const baseSize = Math.min(
+    CONFIG.SIZES.PLAYER.MAX_SIZE,
+    smallerDimension * CONFIG.SIZES.PLAYER.BASE_RATIO
+  );
 
   gameState.player = {
     x: 50,
