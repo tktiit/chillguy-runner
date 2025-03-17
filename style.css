@@ -2,11 +2,13 @@ body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background-color: #87ceeb; /* Sky blue for chill vibes */
+  background: linear-gradient(180deg, #87ceeb 0%, #e0f6ff 100%);
+  font-family: "Arial", sans-serif;
 }
 
 #gameCanvas {
   width: 100vw;
   height: 100vh;
   display: block;
+  filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.1));
 }
