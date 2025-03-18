@@ -26,9 +26,9 @@
 
     <!-- Hidden container for preloading images -->
     <div style="display: none">
-      <img id="playerImage" src="playerImage.png" alt="Player" />
-      <img id="tokenImage" src="tokenImage.png" alt="Token" />
-      <img id="obstacleImage" src="obstacleImage.png" alt="Obstacle" />
+      <img id="playerImage" src="assets/player.png" alt="Player" />
+      <img id="tokenImage" src="assets/token.png" alt="Token" />
+      <img id="obstacleImage" src="assets/obstacle.png" alt="Obstacle" />
     </div>
 
     <script>
@@ -49,13 +49,14 @@
         { passive: false }
       );
 
-      // Wait for images to load before starting the game
+      // Image loading configuration
       const imagesToLoad = ["playerImage", "tokenImage", "obstacleImage"];
       let loadedImages = 0;
 
       function handleImageLoad() {
         loadedImages++;
         if (loadedImages === imagesToLoad.length) {
+          console.log("All images loaded successfully");
           // All images loaded, now load the game
           const gameScript = document.createElement("script");
           gameScript.src = "game.js?v=" + Math.random();
@@ -66,15 +67,21 @@
       // Set up load handlers for all images
       imagesToLoad.forEach((imgId) => {
         const img = document.getElementById(imgId);
+
         if (img.complete) {
+          console.log(`${imgId} already loaded`);
           handleImageLoad();
         } else {
-          img.addEventListener("load", handleImageLoad);
+          img.addEventListener("load", () => {
+            console.log(`${imgId} loaded successfully`);
+            handleImageLoad();
+          });
+
+          img.addEventListener("error", () => {
+            console.error(`Failed to load ${imgId}`);
+            handleImageLoad(); // Continue loading game even if image fails
+          });
         }
-        img.addEventListener("error", () => {
-          console.error(`Failed to load ${imgId}`);
-          handleImageLoad(); // Continue loading game even if image fails
-        });
       });
     </script>
   </body>
