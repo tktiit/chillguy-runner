@@ -1,43 +1,93 @@
-// Game Configuration
-const CONFIG = {
-  JUMP_VELOCITY: -20,
-  GRAVITY: 0.5,
+// Device detection
+const isMobile =
+  /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  ) || window.innerWidth < 768;
+
+// Base configurations
+const BASE_CONFIG = {
   GROUND_HEIGHT_RATIO: 0.75,
   GROUND_COLOR: {
     TOP: "#90EE90",
     BOTTOM: "#228B22",
   },
   HUD: {
-    MIN_SPACING: 40,
     SPACING_RATIO: 0.05,
     METER_HEIGHT: 30,
+  },
+  SCORE_INCREMENT: 10,
+};
+
+// Mobile-specific configuration
+const MOBILE_CONFIG = {
+  ...BASE_CONFIG,
+  JUMP_VELOCITY: -15,
+  GRAVITY: 0.45,
+  HUD: {
+    ...BASE_CONFIG.HUD,
+    MIN_SPACING: 20,
+  },
+  SPAWN_RATES: {
+    TOKEN: 0.03,
+    OBSTACLE: 0.015,
+  },
+  MOVEMENT_SPEED: 5,
+  CHILL_METER: {
+    INCREMENT: 5,
+    DECREMENT: 20,
+  },
+  SIZES: {
+    PLAYER: {
+      BASE_RATIO: 0.22, // Slightly larger relative size for visibility
+      MAX_SIZE: 120,
+    },
+    TOKEN: {
+      BASE_RATIO: 0.12,
+      MAX_SIZE: 80,
+    },
+    OBSTACLE: {
+      BASE_RATIO: 0.12,
+      MAX_SIZE: 80,
+    },
+  },
+};
+
+// Desktop-specific configuration
+const DESKTOP_CONFIG = {
+  ...BASE_CONFIG,
+  JUMP_VELOCITY: -20,
+  GRAVITY: 0.5,
+  HUD: {
+    ...BASE_CONFIG.HUD,
+    MIN_SPACING: 40,
   },
   SPAWN_RATES: {
     TOKEN: 0.03,
     OBSTACLE: 0.015,
   },
   MOVEMENT_SPEED: 10,
-  SCORE_INCREMENT: 10,
   CHILL_METER: {
     INCREMENT: 5,
     DECREMENT: 20,
   },
-  // New size configurations
   SIZES: {
     PLAYER: {
-      BASE_RATIO: 0.2, // 8% of smaller dimension
-      MAX_SIZE: 150, // Maximum size in pixels
+      BASE_RATIO: 0.2,
+      MAX_SIZE: 150,
     },
     TOKEN: {
-      BASE_RATIO: 0.1, // 6% of canvas width
-      MAX_SIZE: 100, // Maximum size in pixels
+      BASE_RATIO: 0.1,
+      MAX_SIZE: 100,
     },
     OBSTACLE: {
-      BASE_RATIO: 0.1, // 8% of canvas width
-      MAX_SIZE: 100, // Maximum size in pixels
+      BASE_RATIO: 0.1,
+      MAX_SIZE: 100,
     },
   },
 };
+
+// Select the appropriate configuration based on device
+const CONFIG = isMobile ? MOBILE_CONFIG : DESKTOP_CONFIG;
 
 // Game State
 const gameState = {
@@ -114,6 +164,19 @@ function initializeGame() {
 
 // Handle window resize
 function handleResize() {
+  // Check if device type has changed (e.g., when rotating from portrait to landscape)
+  const wasIsMobile = isMobile;
+  const newIsMobile =
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    ) || window.innerWidth < 768;
+
+  // If device type changed, reload the page to apply the correct configuration
+  if (wasIsMobile !== newIsMobile) {
+    window.location.reload();
+    return;
+  }
+
   gameState.canvas.width = window.innerWidth;
   gameState.canvas.height = window.innerHeight;
 
@@ -704,3 +767,8 @@ function startGame() {
 }
 
 startGame();
+
+// Log which configuration is being used
+console.log(
+  `Game running with ${isMobile ? "MOBILE" : "DESKTOP"} configuration`
+);
