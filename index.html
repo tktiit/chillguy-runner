@@ -20,8 +20,18 @@
     <meta http-equiv="Expires" content="0" />
     <title>Chill Runner</title>
     <link rel="stylesheet" href="style.css?v=" + Math.random() />
+    <link rel="icon" href="assets/favicon.ico" type="image/x-icon" />
+    <meta name="theme-color" content="#87CEEB" />
+    <meta name="description" content="Chill Runner - A relaxing endless runner game" />
   </head>
   <body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+      <div class="loading-icon"></div>
+      <div class="loading-text">Loading Chill Runner...</div>
+    </div>
+    
+    <!-- Game Canvas -->
     <canvas id="gameCanvas"></canvas>
 
     <!-- Hidden container for preloading images -->
@@ -49,6 +59,9 @@
         { passive: false }
       );
 
+      // Loading screen management
+      const loadingScreen = document.getElementById('loadingScreen');
+      
       // Image loading configuration
       const imagesToLoad = ["playerImage", "tokenImage", "obstacleImage"];
       let loadedImages = 0;
@@ -57,9 +70,23 @@
         loadedImages++;
         if (loadedImages === imagesToLoad.length) {
           console.log("All images loaded successfully");
+          
           // All images loaded, now load the game
           const gameScript = document.createElement("script");
           gameScript.src = "game.js?v=" + Math.random();
+          
+          gameScript.onload = function() {
+            // Hide loading screen with a smooth transition after game is loaded
+            setTimeout(() => {
+              loadingScreen.classList.add('hidden');
+              
+              // Remove loading screen from DOM after transition completes
+              setTimeout(() => {
+                loadingScreen.remove();
+              }, 500);
+            }, 500);
+          };
+          
           document.body.appendChild(gameScript);
         }
       }
