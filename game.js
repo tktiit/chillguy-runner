@@ -109,6 +109,9 @@ const gameState = {
     player: document.getElementById("playerImage"),
     token: document.getElementById("tokenImage"),
     obstacle: document.getElementById("obstacleImage"),
+    sky: document.getElementById("skyImage"),
+    mountains: document.getElementById("mountainsImage"),
+    ground: document.getElementById("groundImage"),
   },
   hud: {
     y: 0,
@@ -362,77 +365,142 @@ function drawCloud(x, y, size, opacity = 0.9) {
   gameState.ctx.restore();
 }
 
+function drawSky() {
+  const skyHeight = gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO;
+  
+  // Check if sky image is available and loaded
+  if (gameState.images.sky && gameState.images.sky.complete && gameState.images.sky.naturalWidth !== 0) {
+    // Draw sky image scaled to fit the sky area
+    gameState.ctx.drawImage(
+      gameState.images.sky,
+      0, 0,
+      gameState.canvas.width, skyHeight
+    );
+  } else {
+    // Fallback to gradient sky
+    const skyGradient = gameState.ctx.createLinearGradient(
+      0, 0, 0, skyHeight
+    );
+    skyGradient.addColorStop(0, '#87CEEB'); // Sky blue at top
+    skyGradient.addColorStop(1, '#C9E9F6'); // Lighter blue near ground
+    gameState.ctx.fillStyle = skyGradient;
+    gameState.ctx.fillRect(0, 0, gameState.canvas.width, skyHeight);
+  }
+}
+
 function drawMountains() {
   // Draw distant mountains for parallax effect
   const mountainHeight = gameState.canvas.height * 0.2;
   const baseY = gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO;
   
-  // First mountain range (furthest)
-  const mountainGradient1 = gameState.ctx.createLinearGradient(0, baseY - mountainHeight, 0, baseY);
-  mountainGradient1.addColorStop(0, '#8BB9DD'); // Light blue-gray
-  mountainGradient1.addColorStop(1, '#6A8CAD'); // Darker blue-gray
-  gameState.ctx.fillStyle = mountainGradient1;
-  
-  gameState.ctx.beginPath();
-  gameState.ctx.moveTo(0, baseY);
-  
-  // Create jagged mountain silhouette
-  const mountainWidth = gameState.canvas.width * 1.5;
-  const segments = 10;
-  const segmentWidth = mountainWidth / segments;
-  
-  for (let i = 0; i <= segments; i++) {
-    const x = i * segmentWidth;
-    // Use sine function for natural-looking mountains
-    const heightVariation = Math.sin(i * 0.8) * 0.3 + 0.7;
-    const y = baseY - mountainHeight * heightVariation;
-    gameState.ctx.lineTo(x, y);
+  // Check if mountains image is available and loaded
+  if (gameState.images.mountains && gameState.images.mountains.complete && gameState.images.mountains.naturalWidth !== 0) {
+    // Draw mountains image scaled to fit
+    gameState.ctx.drawImage(
+      gameState.images.mountains,
+      0, baseY - mountainHeight,
+      gameState.canvas.width, mountainHeight
+    );
+  } else {
+    // Fallback to programmatically drawn mountains
+    // First mountain range (furthest)
+    const mountainGradient1 = gameState.ctx.createLinearGradient(0, baseY - mountainHeight, 0, baseY);
+    mountainGradient1.addColorStop(0, '#8BB9DD'); // Light blue-gray
+    mountainGradient1.addColorStop(1, '#6A8CAD'); // Darker blue-gray
+    gameState.ctx.fillStyle = mountainGradient1;
+    
+    gameState.ctx.beginPath();
+    gameState.ctx.moveTo(0, baseY);
+    
+    // Create jagged mountain silhouette
+    const mountainWidth = gameState.canvas.width * 1.5;
+    const segments = 10;
+    const segmentWidth = mountainWidth / segments;
+    
+    for (let i = 0; i <= segments; i++) {
+      const x = i * segmentWidth;
+      // Use sine function for natural-looking mountains
+      const heightVariation = Math.sin(i * 0.8) * 0.3 + 0.7;
+      const y = baseY - mountainHeight * heightVariation;
+      gameState.ctx.lineTo(x, y);
+    }
+    
+    gameState.ctx.lineTo(mountainWidth, baseY);
+    gameState.ctx.closePath();
+    gameState.ctx.fill();
+    
+    // Second mountain range (closer)
+    const mountainGradient2 = gameState.ctx.createLinearGradient(0, baseY - mountainHeight * 0.7, 0, baseY);
+    mountainGradient2.addColorStop(0, '#6A8CAD'); // Match the darker color from first range
+    mountainGradient2.addColorStop(1, '#5D7E9C'); // Even darker blue-gray
+    gameState.ctx.fillStyle = mountainGradient2;
+    
+    gameState.ctx.beginPath();
+    gameState.ctx.moveTo(0, baseY);
+    
+    // Create jagged mountain silhouette with different pattern
+    for (let i = 0; i <= segments; i++) {
+      const x = i * segmentWidth - 100; // Offset for variation
+      // Different sine pattern for second range
+      const heightVariation = Math.sin(i * 1.2 + 2) * 0.4 + 0.6;
+      const y = baseY - (mountainHeight * 0.7) * heightVariation;
+      gameState.ctx.lineTo(x, y);
+    }
+    
+    gameState.ctx.lineTo(mountainWidth, baseY);
+    gameState.ctx.closePath();
+    gameState.ctx.fill();
   }
-  
-  gameState.ctx.lineTo(mountainWidth, baseY);
-  gameState.ctx.closePath();
-  gameState.ctx.fill();
-  
-  // Second mountain range (closer)
-  const mountainGradient2 = gameState.ctx.createLinearGradient(0, baseY - mountainHeight * 0.7, 0, baseY);
-  mountainGradient2.addColorStop(0, '#6A8CAD'); // Match the darker color from first range
-  mountainGradient2.addColorStop(1, '#5D7E9C'); // Even darker blue-gray
-  gameState.ctx.fillStyle = mountainGradient2;
-  
-  gameState.ctx.beginPath();
-  gameState.ctx.moveTo(0, baseY);
-  
-  // Create jagged mountain silhouette with different pattern
-  for (let i = 0; i <= segments; i++) {
-    const x = i * segmentWidth - 100; // Offset for variation
-    // Different sine pattern for second range
-    const heightVariation = Math.sin(i * 1.2 + 2) * 0.4 + 0.6;
-    const y = baseY - (mountainHeight * 0.7) * heightVariation;
-    gameState.ctx.lineTo(x, y);
-  }
-  
-  gameState.ctx.lineTo(mountainWidth, baseY);
-  gameState.ctx.closePath();
-  gameState.ctx.fill();
 }
 
 function drawGrassDetails() {
-  const groundY = gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO;
-  const grassHeight = Math.min(15, gameState.canvas.height * 0.02);
-  
-  gameState.ctx.fillStyle = '#90EE90'; // Light green
-  
-  // Draw individual grass blades
-  for (let x = 0; x < gameState.canvas.width; x += 15) {
-    const randomHeight = grassHeight * (0.7 + Math.random() * 0.6);
-    const randomWidth = 2 + Math.random() * 3;
+  // Only draw grass details if we're not using a ground image
+  if (!gameState.images.ground || !gameState.images.ground.complete || gameState.images.ground.naturalWidth === 0) {
+    const groundY = gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO;
+    const grassHeight = Math.min(15, gameState.canvas.height * 0.02);
     
-    gameState.ctx.beginPath();
-    gameState.ctx.moveTo(x, groundY);
-    gameState.ctx.lineTo(x + randomWidth/2, groundY - randomHeight);
-    gameState.ctx.lineTo(x + randomWidth, groundY);
-    gameState.ctx.closePath();
-    gameState.ctx.fill();
+    gameState.ctx.fillStyle = '#90EE90'; // Light green
+    
+    // Draw individual grass blades
+    for (let x = 0; x < gameState.canvas.width; x += 15) {
+      const randomHeight = grassHeight * (0.7 + Math.random() * 0.6);
+      const randomWidth = 2 + Math.random() * 3;
+      
+      gameState.ctx.beginPath();
+      gameState.ctx.moveTo(x, groundY);
+      gameState.ctx.lineTo(x + randomWidth/2, groundY - randomHeight);
+      gameState.ctx.lineTo(x + randomWidth, groundY);
+      gameState.ctx.closePath();
+      gameState.ctx.fill();
+    }
+  }
+}
+
+function drawGround() {
+  const groundY = gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO;
+  const groundHeight = gameState.canvas.height * 0.25;
+  
+  // Check if ground image is available and loaded
+  if (gameState.images.ground && gameState.images.ground.complete && gameState.images.ground.naturalWidth !== 0) {
+    // Draw ground image scaled to fit
+    gameState.ctx.drawImage(
+      gameState.images.ground,
+      0, groundY,
+      gameState.canvas.width, groundHeight
+    );
+  } else {
+    // Fallback to gradient ground
+    const groundGradient = gameState.ctx.createLinearGradient(
+      0, groundY, 0, gameState.canvas.height
+    );
+    groundGradient.addColorStop(0, CONFIG.GROUND_COLOR.TOP);
+    groundGradient.addColorStop(0.3, '#7BC47F'); // Middle tone
+    groundGradient.addColorStop(1, CONFIG.GROUND_COLOR.BOTTOM);
+    gameState.ctx.fillStyle = groundGradient;
+    gameState.ctx.fillRect(
+      0, groundY,
+      gameState.canvas.width, groundHeight
+    );
   }
 }
 
@@ -440,18 +508,21 @@ function drawGroundTexture() {
   const groundY = gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO;
   const groundHeight = gameState.canvas.height * 0.25;
   
-  // Add subtle texture to ground
-  gameState.ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-  
-  // Draw some random dots/specs for texture
-  for (let i = 0; i < 100; i++) {
-    const x = Math.random() * gameState.canvas.width;
-    const y = groundY + Math.random() * groundHeight * 0.7;
-    const size = 1 + Math.random() * 3;
+  // Only add texture if we're not using an image (to avoid overlaying texture on the image)
+  if (!gameState.images.ground || !gameState.images.ground.complete || gameState.images.ground.naturalWidth === 0) {
+    // Add subtle texture to ground
+    gameState.ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
     
-    gameState.ctx.beginPath();
-    gameState.ctx.arc(x, y, size, 0, Math.PI * 2);
-    gameState.ctx.fill();
+    // Draw some random dots/specs for texture
+    for (let i = 0; i < 100; i++) {
+      const x = Math.random() * gameState.canvas.width;
+      const y = groundY + Math.random() * groundHeight * 0.7;
+      const size = 1 + Math.random() * 3;
+      
+      gameState.ctx.beginPath();
+      gameState.ctx.arc(x, y, size, 0, Math.PI * 2);
+      gameState.ctx.fill();
+    }
   }
 }
 
@@ -609,14 +680,8 @@ function draw() {
     gameState.canvas.height
   );
 
-  // Draw sky with gradient
-  const skyGradient = gameState.ctx.createLinearGradient(
-    0, 0, 0, gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO
-  );
-  skyGradient.addColorStop(0, '#87CEEB'); // Sky blue at top
-  skyGradient.addColorStop(1, '#C9E9F6'); // Lighter blue near ground
-  gameState.ctx.fillStyle = skyGradient;
-  gameState.ctx.fillRect(0, 0, gameState.canvas.width, gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO);
+  // Draw sky (image or gradient)
+  drawSky();
   
   // Draw distant mountains for depth
   drawMountains();
@@ -624,24 +689,8 @@ function draw() {
   // Draw clouds with parallax effect
   gameState.clouds.forEach((cloud) => drawCloud(cloud.x, cloud.y, cloud.size, cloud.opacity));
 
-  // Draw ground with more detailed gradient
-  const groundHeight = gameState.canvas.height * 0.25;
-  const groundGradient = gameState.ctx.createLinearGradient(
-    0,
-    gameState.canvas.height - groundHeight,
-    0,
-    gameState.canvas.height
-  );
-  groundGradient.addColorStop(0, CONFIG.GROUND_COLOR.TOP);
-  groundGradient.addColorStop(0.3, '#7BC47F'); // Middle tone
-  groundGradient.addColorStop(1, CONFIG.GROUND_COLOR.BOTTOM);
-  gameState.ctx.fillStyle = groundGradient;
-  gameState.ctx.fillRect(
-    0,
-    gameState.canvas.height - groundHeight,
-    gameState.canvas.width,
-    groundHeight
-  );
+  // Draw ground
+  drawGround();
   
   // Draw grass details on top of the ground
   drawGrassDetails();

@@ -22,7 +22,10 @@
     <link rel="stylesheet" href="style.css?v=" + Math.random() />
     <link rel="icon" href="assets/favicon.ico" type="image/x-icon" />
     <meta name="theme-color" content="#87CEEB" />
-    <meta name="description" content="Chill Runner - A relaxing endless runner game" />
+    <meta
+      name="description"
+      content="Chill Runner - A relaxing endless runner game"
+    />
   </head>
   <body>
     <!-- Loading Screen -->
@@ -30,15 +33,21 @@
       <div class="loading-icon"></div>
       <div class="loading-text">Loading Chill Runner...</div>
     </div>
-    
+
     <!-- Game Canvas -->
     <canvas id="gameCanvas"></canvas>
 
     <!-- Hidden container for preloading images -->
     <div style="display: none">
-      <img id="playerImage" src="assets/player.png" alt="Player" />
-      <img id="tokenImage" src="assets/token.png" alt="Token" />
-      <img id="obstacleImage" src="assets/obstacle.png" alt="Obstacle" />
+      <!-- Game sprites with multiple extension support -->
+      <img id="playerImage" alt="Player" />
+      <img id="tokenImage" alt="Token" />
+      <img id="obstacleImage" alt="Obstacle" />
+      
+      <!-- Background images with multiple extension support -->
+      <img id="skyImage" alt="Sky Background" />
+      <img id="mountainsImage" alt="Mountains Background" />
+      <img id="groundImage" alt="Ground Background" />
     </div>
 
     <script>
@@ -60,55 +69,90 @@
       );
 
       // Loading screen management
-      const loadingScreen = document.getElementById('loadingScreen');
+      const loadingScreen = document.getElementById("loadingScreen");
+
+      // Image configuration for all game images
+      const gameImages = [
+        // Sprite images
+        { id: "playerImage", baseName: "player" },
+        { id: "tokenImage", baseName: "token" },
+        { id: "obstacleImage", baseName: "obstacle" },
+        // Background images
+        { id: "skyImage", baseName: "sky" },
+        { id: "mountainsImage", baseName: "mountains" },
+        { id: "groundImage", baseName: "ground" },
+      ];
       
-      // Image loading configuration
-      const imagesToLoad = ["playerImage", "tokenImage", "obstacleImage"];
+      // Common image extensions to try (in order of preference)
+      const imageExtensions = [
+        "webp", // Most efficient format
+        "png",  // Good for transparency
+        "jpg",  // Good for photos
+        "jpeg", // Alternative jpg extension
+        "avif", // Newer efficient format
+        "gif"   // For simple animations
+      ];
+      
+      // All images to load
+      const imagesToLoad = gameImages.map(img => img.id);
       let loadedImages = 0;
+
+      // Function to try loading an image with different extensions
+      function tryLoadImageWithExtensions(imageConfig, extensionIndex = 0) {
+        if (extensionIndex >= imageExtensions.length) {
+          console.warn(`Could not load ${imageConfig.baseName} with any extension`);
+          handleImageLoad(); // Continue even if we couldn't load this image
+          return;
+        }
+        
+        const extension = imageExtensions[extensionIndex];
+        const imgElement = document.getElementById(imageConfig.id);
+        const imgPath = `assets/${imageConfig.baseName}.${extension}`;
+        
+        // Set the source to try this extension
+        imgElement.src = imgPath;
+        
+        // If this extension fails, try the next one
+        imgElement.onerror = () => {
+          console.log(`Failed to load ${imgPath}, trying next extension...`);
+          tryLoadImageWithExtensions(imageConfig, extensionIndex + 1);
+        };
+        
+        // If this extension succeeds, mark as loaded
+        imgElement.onload = () => {
+          console.log(`Successfully loaded ${imgPath}`);
+          handleImageLoad();
+        };
+      }
 
       function handleImageLoad() {
         loadedImages++;
         if (loadedImages === imagesToLoad.length) {
           console.log("All images loaded successfully");
-          
+
           // All images loaded, now load the game
           const gameScript = document.createElement("script");
           gameScript.src = "game.js?v=" + Math.random();
-          
-          gameScript.onload = function() {
+
+          gameScript.onload = function () {
             // Hide loading screen with a smooth transition after game is loaded
             setTimeout(() => {
-              loadingScreen.classList.add('hidden');
-              
+              loadingScreen.classList.add("hidden");
+
               // Remove loading screen from DOM after transition completes
               setTimeout(() => {
                 loadingScreen.remove();
               }, 500);
             }, 500);
           };
-          
+
           document.body.appendChild(gameScript);
         }
       }
 
-      // Set up load handlers for all images
-      imagesToLoad.forEach((imgId) => {
-        const img = document.getElementById(imgId);
-
-        if (img.complete) {
-          console.log(`${imgId} already loaded`);
-          handleImageLoad();
-        } else {
-          img.addEventListener("load", () => {
-            console.log(`${imgId} loaded successfully`);
-            handleImageLoad();
-          });
-
-          img.addEventListener("error", () => {
-            console.error(`Failed to load ${imgId}`);
-            handleImageLoad(); // Continue loading game even if image fails
-          });
-        }
+      // Try loading all images with different extensions
+      gameImages.forEach(imageConfig => {
+        tryLoadImageWithExtensions(imageConfig);
       });
     </script>
   </body>
