@@ -16,6 +16,17 @@ const BASE_CONFIG = {
     METER_HEIGHT: 30,
   },
   SCORE_INCREMENT: 10,
+  PLATFORM: {
+    MIN_WIDTH: 100,
+    MAX_WIDTH: 200,
+    HEIGHT: 20,
+    MIN_GAP: 200,
+    MAX_GAP: 400,
+    MIN_HEIGHT_RATIO: 0.4, // Minimum height from ground (as ratio of playable area)
+    MAX_HEIGHT_RATIO: 0.65, // Maximum height from ground (as ratio of playable area)
+    SPAWN_RATE: 0.01, // Chance to spawn a platform each frame
+    COLOR: "#8B4513", // Brown color for platforms
+  },
 };
 
 // Mobile-specific configuration
@@ -112,6 +123,7 @@ const gameState = {
     sky: document.getElementById("skyImage"),
     mountains: document.getElementById("mountainsImage"),
     ground: document.getElementById("groundImage"),
+    platform: document.getElementById("platformImage"), // Platform image (optional)
   },
   hud: {
     y: 0,
@@ -126,6 +138,7 @@ const gameState = {
   chillMeter: 100,
   vibeTokens: [],
   obstacles: [],
+  platforms: [], // Array to store platforms
   skyObjects: [], // Renamed from clouds to be more generic
   skyObjectType: "asteroids", // Can be 'clouds', 'asteroids', or 'rockets'
   score: 0,
@@ -133,6 +146,7 @@ const gameState = {
   showMountains: false, // Flag to control mountain visibility
   frameCount: 0,
   lastFrameTime: 0,
+  onPlatform: false, // Flag to track if player is on a platform
 };
 
 // Initialize game state
@@ -178,6 +192,9 @@ function initializeGame() {
       opacity: 0.7 + Math.random() * 0.3,
     });
   }
+  
+  // Initialize platforms
+  generateInitialPlatforms();
 
   // Initial HUD setup
   handleResize();
@@ -280,6 +297,7 @@ function jump() {
   if (!gameState.player.jumping) {
     gameState.player.jumping = true;
     gameState.player.yVelocity = CONFIG.JUMP_VELOCITY;
+    gameState.onPlatform = false; // No longer on platform when jumping
   }
 }
 
@@ -461,6 +479,136 @@ function drawAsteroid(x, y, size, opacity = 0.9, rotation = 0) {
     gameState.ctx.arc(craterX, craterY, craterSize, 0, Math.PI * 2);
     gameState.ctx.fill();
   }
+}
+
+// Platform functions
+function generateInitialPlatforms() {
+  // Clear existing platforms
+  gameState.platforms = [];
+  
+  // Calculate playable area height (from ground to a bit above)
+  const groundY = gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO;
+  const playableHeight = groundY * 0.7; // Use 70% of the ground height for platforms
+  
+  // Generate 3-5 initial platforms at different heights
+  const numPlatforms = 3 + Math.floor(Math.random() * 3);
+  console.log(`Generating ${numPlatforms} initial platforms`);
+  
+  for (let i = 0; i < numPlatforms; i++) {
+    const platformWidth = CONFIG.PLATFORM.MIN_WIDTH + 
+      Math.random() * (CONFIG.PLATFORM.MAX_WIDTH - CONFIG.PLATFORM.MIN_WIDTH);
+    
+    // Distribute platforms across the screen width
+    const segmentWidth = gameState.canvas.width / numPlatforms;
+    const platformX = i * segmentWidth + Math.random() * (segmentWidth - platformWidth);
+    
+    // Vary platform heights
+    const minHeight = groundY - playableHeight * CONFIG.PLATFORM.MAX_HEIGHT_RATIO;
+    const maxHeight = groundY - playableHeight * CONFIG.PLATFORM.MIN_HEIGHT_RATIO;
+    const platformY = minHeight + Math.random() * (maxHeight - minHeight);
+    
+    gameState.platforms.push({
+      x: platformX,
+      y: platformY,
+      width: platformWidth,
+      height: CONFIG.PLATFORM.HEIGHT,
+    });
+  }
+  
+  console.log('Platforms after initialization:', gameState.platforms);
+}
+
+function spawnPlatform() {
+  const platformWidth = CONFIG.PLATFORM.MIN_WIDTH + 
+    Math.random() * (CONFIG.PLATFORM.MAX_WIDTH - CONFIG.PLATFORM.MIN_WIDTH);
+  
+  const groundY = gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO;
+  const playableHeight = groundY * 0.7;
+  
+  // Vary platform heights
+  const minHeight = groundY - playableHeight * CONFIG.PLATFORM.MAX_HEIGHT_RATIO;
+  const maxHeight = groundY - playableHeight * CONFIG.PLATFORM.MIN_HEIGHT_RATIO;
+  const platformY = minHeight + Math.random() * (maxHeight - minHeight);
+  
+  gameState.platforms.push({
+    x: gameState.canvas.width + 50, // Start just off-screen
+    y: platformY,
+    width: platformWidth,
+    height: CONFIG.PLATFORM.HEIGHT,
+  });
+}
+
+function updatePlatforms() {
+  // Move platforms to the left
+  const movementSpeed = CONFIG.MOVEMENT_SPEED * 0.8; // Slightly slower than obstacles
+  
+  // Filter out platforms that have moved off-screen
+  gameState.platforms = gameState.platforms.filter(platform => {
+    platform.x -= movementSpeed;
+    return platform.x + platform.width > 0; // Keep if still visible
+  });
+}
+
+function drawPlatforms() {
+  // Debug - log platform count
+  if (gameState.frameCount % 60 === 0) {
+    console.log(`Drawing ${gameState.platforms.length} platforms`);
+  }
+  
+  gameState.platforms.forEach(platform => {
+    // Check if platform image is available and loaded
+    if (
+      gameState.images.platform &&
+      gameState.images.platform.complete &&
+      gameState.images.platform.naturalWidth !== 0
+    ) {
+      // Draw platform image with proper scaling
+      gameState.ctx.drawImage(
+        gameState.images.platform,
+        platform.x,
+        platform.y,
+        platform.width,
+        platform.height
+      );
+    } else {
+      // Fallback to drawing a styled platform
+      // Platform shadow for 3D effect
+      gameState.ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+      gameState.ctx.fillRect(
+        platform.x + 5,
+        platform.y + 5,
+        platform.width,
+        platform.height
+      );
+      
+      // Main platform
+      const platformGradient = gameState.ctx.createLinearGradient(
+        platform.x,
+        platform.y,
+        platform.x,
+        platform.y + platform.height
+      );
+      platformGradient.addColorStop(0, CONFIG.PLATFORM.COLOR);
+      platformGradient.addColorStop(1, "#5D3A1A"); // Darker brown at bottom
+      
+      gameState.ctx.fillStyle = platformGradient;
+      gameState.ctx.fillRect(
+        platform.x,
+        platform.y,
+        platform.width,
+        platform.height
+      );
+      
+      // Platform top highlight
+      gameState.ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+      gameState.ctx.fillRect(
+        platform.x,
+        platform.y,
+        platform.width,
+        platform.height / 3
+      );
+    }
+  });
 }
 
 function drawRocket(x, y, size, opacity = 0.9, rotation = 0) {
@@ -867,15 +1015,77 @@ function update() {
   if (gameState.player.jumping) {
     gameState.player.y += gameState.player.yVelocity;
     gameState.player.yVelocity += CONFIG.GRAVITY;
-    if (
-      gameState.player.y >=
-      gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO -
-        gameState.player.height
-    ) {
-      gameState.player.y =
+    
+    // Check for platform collisions
+    let onAnyPlatform = false;
+    gameState.platforms.forEach(platform => {
+      // Only check for platform collision if player is falling (moving downward)
+      if (gameState.player.yVelocity > 0) {
+        // Check if player's feet are at or slightly above platform level
+        const playerFeet = gameState.player.y + gameState.player.height;
+        const platformTop = platform.y;
+        
+        // Check if player's feet are within 10 pixels above the platform
+        const feetNearPlatform = playerFeet >= platformTop - 10 && playerFeet <= platformTop + 5;
+        
+        // Check if player is horizontally within the platform bounds
+        const horizontallyAligned = 
+          gameState.player.x + gameState.player.width * 0.3 < platform.x + platform.width &&
+          gameState.player.x + gameState.player.width * 0.7 > platform.x;
+        
+        // If player is falling onto a platform, land on it
+        if (feetNearPlatform && horizontallyAligned) {
+          gameState.player.y = platform.y - gameState.player.height;
+          gameState.player.jumping = false;
+          gameState.player.yVelocity = 0;
+          gameState.onPlatform = true;
+          onAnyPlatform = true;
+          // Add a small score bonus for landing on a platform
+          gameState.score += 2;
+        }
+      }
+    });
+    
+    // If player is not on any platform, check for ground collision
+    if (!onAnyPlatform) {
+      // Check for ground collision
+      if (
+        gameState.player.y >=
         gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO -
-        gameState.player.height;
-      gameState.player.jumping = false;
+          gameState.player.height
+      ) {
+        gameState.player.y =
+          gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO -
+          gameState.player.height;
+        gameState.player.jumping = false;
+        gameState.player.yVelocity = 0;
+        gameState.onPlatform = false;
+      }
+    }
+  } else if (gameState.onPlatform) {
+    // If player is on a platform, check if they're still on it
+    let stillOnPlatform = false;
+    
+    gameState.platforms.forEach(platform => {
+      // Check if player is still horizontally within the platform bounds
+      const horizontallyAligned = 
+        gameState.player.x + gameState.player.width * 0.3 < platform.x + platform.width &&
+        gameState.player.x + gameState.player.width * 0.7 > platform.x;
+      
+      // Check if player's feet are at platform level
+      const onPlatformLevel = 
+        Math.abs((gameState.player.y + gameState.player.height) - platform.y) < 5;
+      
+      if (horizontallyAligned && onPlatformLevel) {
+        stillOnPlatform = true;
+      }
+    });
+    
+    // If player walked off the platform, start falling
+    if (!stillOnPlatform) {
+      gameState.player.jumping = true;
+      gameState.player.yVelocity = 0; // Start with zero velocity (just falling)
+      gameState.onPlatform = false;
     }
   }
 
@@ -886,6 +1096,14 @@ function update() {
   if (Math.random() < (CONFIG.SPAWN_RATES.OBSTACLE || 0.015)) {
     gameState.obstacles.push(spawnObstacle());
   }
+  
+  // Spawn platforms with configured rate
+  if (Math.random() < CONFIG.PLATFORM.SPAWN_RATE) {
+    spawnPlatform();
+  }
+  
+  // Update platforms
+  updatePlatforms();
 
   // Debug log for spawning
   if (gameState.frameCount % 60 === 0) {
@@ -959,6 +1177,9 @@ function draw() {
   gameState.skyObjects.forEach((obj) =>
     drawSkyObject(obj.x, obj.y, obj.size, obj.opacity, obj.rotation)
   );
+  
+  // Draw platforms
+  drawPlatforms();
 
   // Draw ground
   drawGround();
