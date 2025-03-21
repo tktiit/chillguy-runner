@@ -93,7 +93,7 @@ const CONFIG = isMobile ? MOBILE_CONFIG : DESKTOP_CONFIG;
 if (!CONFIG.SPAWN_RATES) {
   CONFIG.SPAWN_RATES = {
     TOKEN: 0.03,
-    OBSTACLE: 0.015
+    OBSTACLE: 0.015,
   };
 }
 
@@ -126,9 +126,11 @@ const gameState = {
   chillMeter: 100,
   vibeTokens: [],
   obstacles: [],
-  clouds: [],
+  skyObjects: [], // Renamed from clouds to be more generic
+  skyObjectType: "asteroids", // Can be 'clouds', 'asteroids', or 'rockets'
   score: 0,
   gameOver: false,
+  showMountains: false, // Flag to control mountain visibility
   frameCount: 0,
   lastFrameTime: 0,
 };
@@ -165,13 +167,15 @@ function initializeGame() {
     spriteHeight: gameState.images.player.height,
   };
 
-  // Initialize clouds
+  // Initialize sky objects (clouds, asteroids, or rockets)
   for (let i = 0; i < 5; i++) {
-    gameState.clouds.push({
+    gameState.skyObjects.push({
       x: Math.random() * gameState.canvas.width,
       y: Math.random() * (gameState.canvas.height / 2),
       speed: 0.5 + Math.random() * 0.5,
       size: 30 + Math.random() * 40,
+      rotation: Math.random() * Math.PI * 2, // For asteroids and rockets
+      opacity: 0.7 + Math.random() * 0.3,
     });
   }
 
@@ -231,14 +235,17 @@ function spawnToken() {
     CONFIG.SIZES.TOKEN.MAX_SIZE || 100,
     gameState.canvas.width * (CONFIG.SIZES.TOKEN.BASE_RATIO || 0.1)
   );
-  
+
   // Randomize vertical position slightly for variety
   const yVariation = Math.random() * 50 - 25; // -25 to +25 pixels
-  
+
   // Create token with guaranteed position values
   return {
     x: gameState.canvas.width + 20, // Start slightly off-screen
-    y: (gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO - tokenSize) + yVariation,
+    y:
+      gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO -
+      tokenSize +
+      yVariation,
     width: tokenSize,
     height: tokenSize,
     spriteWidth: gameState.images.token.width || 32,
@@ -252,11 +259,11 @@ function spawnObstacle() {
     CONFIG.SIZES.OBSTACLE.MAX_SIZE || 100,
     gameState.canvas.width * (CONFIG.SIZES.OBSTACLE.BASE_RATIO || 0.1)
   );
-  
+
   // Vary the height slightly for visual interest
   const heightVariation = Math.random() * 0.3 + 0.85; // 0.85 to 1.15 multiplier
   const obstacleHeight = obstacleSize * heightVariation;
-  
+
   // Create obstacle with guaranteed position values
   return {
     x: gameState.canvas.width + 20, // Start slightly off-screen
@@ -332,16 +339,41 @@ function checkCollision(obj1, obj2) {
 }
 
 // Drawing functions
-function drawCloud(x, y, size, opacity = 0.9) {
+function drawSkyObject(x, y, size, opacity = 0.9, rotation = 0) {
   gameState.ctx.save();
-  
-  // Create a more fluffy, detailed cloud with shadow
+
+  // Choose drawing method based on skyObjectType
+  switch (gameState.skyObjectType) {
+    case "asteroids":
+      drawAsteroid(x, y, size, opacity, rotation);
+      break;
+    case "rockets":
+      drawRocket(x, y, size, opacity, rotation);
+      break;
+    case "clouds":
+    default:
+      drawCloud(x, y, size, opacity);
+      break;
+  }
+
+  gameState.ctx.restore();
+}
+
+function drawCloud(x, y, size, opacity = 0.9) {
   // Cloud shadow
-  gameState.ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+  gameState.ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
   gameState.ctx.beginPath();
-  gameState.ctx.ellipse(x + size * 0.4, y + size * 0.6, size * 0.7, size * 0.2, 0, 0, Math.PI * 2);
+  gameState.ctx.ellipse(
+    x + size * 0.4,
+    y + size * 0.6,
+    size * 0.7,
+    size * 0.2,
+    0,
+    0,
+    Math.PI * 2
+  );
   gameState.ctx.fill();
-  
+
   // Main cloud
   gameState.ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
   gameState.ctx.beginPath();
@@ -349,40 +381,179 @@ function drawCloud(x, y, size, opacity = 0.9) {
   gameState.ctx.arc(x + size * 0.4, y - size * 0.2, size * 0.3, 0, Math.PI * 2);
   gameState.ctx.arc(x + size * 0.4, y + size * 0.2, size * 0.3, 0, Math.PI * 2);
   gameState.ctx.arc(x + size * 0.7, y, size * 0.4, 0, Math.PI * 2);
-  
+
   // Additional details for fluffier clouds
-  gameState.ctx.arc(x + size * 0.2, y + size * 0.3, size * 0.25, 0, Math.PI * 2);
+  gameState.ctx.arc(
+    x + size * 0.2,
+    y + size * 0.3,
+    size * 0.25,
+    0,
+    Math.PI * 2
+  );
   gameState.ctx.arc(x + size * 0.6, y + size * 0.1, size * 0.3, 0, Math.PI * 2);
-  
+
   gameState.ctx.fill();
-  
+
   // Add subtle highlight
-  gameState.ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+  gameState.ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
   gameState.ctx.beginPath();
-  gameState.ctx.arc(x + size * 0.2, y - size * 0.1, size * 0.15, 0, Math.PI * 2);
+  gameState.ctx.arc(
+    x + size * 0.2,
+    y - size * 0.1,
+    size * 0.15,
+    0,
+    Math.PI * 2
+  );
   gameState.ctx.fill();
-  
-  gameState.ctx.restore();
+}
+
+function drawAsteroid(x, y, size, opacity = 0.9, rotation = 0) {
+  gameState.ctx.translate(x, y);
+  gameState.ctx.rotate(rotation);
+
+  // Asteroid shadow
+  gameState.ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
+  gameState.ctx.beginPath();
+  gameState.ctx.ellipse(
+    size * 0.1,
+    size * 0.1,
+    size * 0.5,
+    size * 0.5,
+    0,
+    0,
+    Math.PI * 2
+  );
+  gameState.ctx.fill();
+
+  // Main asteroid body - irregular shape
+  gameState.ctx.fillStyle = `rgba(120, 120, 120, ${opacity})`;
+  gameState.ctx.beginPath();
+
+  // Create irregular asteroid shape
+  const points = 8;
+  const angleStep = (Math.PI * 2) / points;
+
+  for (let i = 0; i < points; i++) {
+    const angle = i * angleStep;
+    const radiusVariation = 0.7 + Math.sin(i * 3) * 0.3;
+    const radius = size * 0.5 * radiusVariation;
+    const px = Math.cos(angle) * radius;
+    const py = Math.sin(angle) * radius;
+
+    if (i === 0) {
+      gameState.ctx.moveTo(px, py);
+    } else {
+      gameState.ctx.lineTo(px, py);
+    }
+  }
+
+  gameState.ctx.closePath();
+  gameState.ctx.fill();
+
+  // Asteroid craters
+  gameState.ctx.fillStyle = `rgba(80, 80, 80, ${opacity})`;
+  for (let i = 0; i < 3; i++) {
+    const craterX = (Math.random() - 0.5) * size * 0.5;
+    const craterY = (Math.random() - 0.5) * size * 0.5;
+    const craterSize = size * (0.1 + Math.random() * 0.1);
+
+    gameState.ctx.beginPath();
+    gameState.ctx.arc(craterX, craterY, craterSize, 0, Math.PI * 2);
+    gameState.ctx.fill();
+  }
+}
+
+function drawRocket(x, y, size, opacity = 0.9, rotation = 0) {
+  gameState.ctx.translate(x, y);
+  gameState.ctx.rotate(rotation);
+
+  // Rocket body
+  gameState.ctx.fillStyle = `rgba(220, 60, 60, ${opacity})`;
+  gameState.ctx.beginPath();
+  gameState.ctx.ellipse(0, 0, size * 0.2, size * 0.5, 0, 0, Math.PI * 2);
+  gameState.ctx.fill();
+
+  // Rocket nose cone
+  gameState.ctx.fillStyle = `rgba(180, 180, 180, ${opacity})`;
+  gameState.ctx.beginPath();
+  gameState.ctx.moveTo(0, -size * 0.5);
+  gameState.ctx.lineTo(size * 0.2, -size * 0.3);
+  gameState.ctx.lineTo(-size * 0.2, -size * 0.3);
+  gameState.ctx.closePath();
+  gameState.ctx.fill();
+
+  // Rocket fins
+  gameState.ctx.fillStyle = `rgba(100, 100, 220, ${opacity})`;
+
+  // Left fin
+  gameState.ctx.beginPath();
+  gameState.ctx.moveTo(-size * 0.2, size * 0.2);
+  gameState.ctx.lineTo(-size * 0.4, size * 0.5);
+  gameState.ctx.lineTo(-size * 0.1, size * 0.2);
+  gameState.ctx.closePath();
+  gameState.ctx.fill();
+
+  // Right fin
+  gameState.ctx.beginPath();
+  gameState.ctx.moveTo(size * 0.2, size * 0.2);
+  gameState.ctx.lineTo(size * 0.4, size * 0.5);
+  gameState.ctx.lineTo(size * 0.1, size * 0.2);
+  gameState.ctx.closePath();
+  gameState.ctx.fill();
+
+  // Rocket window
+  gameState.ctx.fillStyle = `rgba(200, 230, 255, ${opacity})`;
+  gameState.ctx.beginPath();
+  gameState.ctx.arc(0, -size * 0.1, size * 0.1, 0, Math.PI * 2);
+  gameState.ctx.fill();
+
+  // Rocket exhaust/flame
+  if (Math.random() > 0.3) {
+    // Flicker effect
+    const flameSize = 0.7 + Math.random() * 0.3;
+
+    // Outer flame
+    gameState.ctx.fillStyle = `rgba(255, 100, 0, ${opacity * 0.7})`;
+    gameState.ctx.beginPath();
+    gameState.ctx.moveTo(-size * 0.15, size * 0.5);
+    gameState.ctx.lineTo(0, size * (0.8 * flameSize));
+    gameState.ctx.lineTo(size * 0.15, size * 0.5);
+    gameState.ctx.closePath();
+    gameState.ctx.fill();
+
+    // Inner flame
+    gameState.ctx.fillStyle = `rgba(255, 200, 0, ${opacity})`;
+    gameState.ctx.beginPath();
+    gameState.ctx.moveTo(-size * 0.08, size * 0.5);
+    gameState.ctx.lineTo(0, size * (0.7 * flameSize));
+    gameState.ctx.lineTo(size * 0.08, size * 0.5);
+    gameState.ctx.closePath();
+    gameState.ctx.fill();
+  }
 }
 
 function drawSky() {
   const skyHeight = gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO;
-  
+
   // Check if sky image is available and loaded
-  if (gameState.images.sky && gameState.images.sky.complete && gameState.images.sky.naturalWidth !== 0) {
-    // Draw sky image scaled to fit the sky area
-    gameState.ctx.drawImage(
+  if (
+    gameState.images.sky &&
+    gameState.images.sky.complete &&
+    gameState.images.sky.naturalWidth !== 0
+  ) {
+    // Draw sky image with aspect ratio preservation (cover mode)
+    drawImageCover(
       gameState.images.sky,
-      0, 0,
-      gameState.canvas.width, skyHeight
+      0,
+      0,
+      gameState.canvas.width,
+      skyHeight
     );
   } else {
     // Fallback to gradient sky
-    const skyGradient = gameState.ctx.createLinearGradient(
-      0, 0, 0, skyHeight
-    );
-    skyGradient.addColorStop(0, '#87CEEB'); // Sky blue at top
-    skyGradient.addColorStop(1, '#C9E9F6'); // Lighter blue near ground
+    const skyGradient = gameState.ctx.createLinearGradient(0, 0, 0, skyHeight);
+    skyGradient.addColorStop(0, "#87CEEB"); // Sky blue at top
+    skyGradient.addColorStop(1, "#C9E9F6"); // Lighter blue near ground
     gameState.ctx.fillStyle = skyGradient;
     gameState.ctx.fillRect(0, 0, gameState.canvas.width, skyHeight);
   }
@@ -392,31 +563,42 @@ function drawMountains() {
   // Draw distant mountains for parallax effect
   const mountainHeight = gameState.canvas.height * 0.2;
   const baseY = gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO;
-  
+
   // Check if mountains image is available and loaded
-  if (gameState.images.mountains && gameState.images.mountains.complete && gameState.images.mountains.naturalWidth !== 0) {
-    // Draw mountains image scaled to fit
-    gameState.ctx.drawImage(
+  if (
+    gameState.images.mountains &&
+    gameState.images.mountains.complete &&
+    gameState.images.mountains.naturalWidth !== 0
+  ) {
+    // Draw mountains image with aspect ratio preservation (cover mode)
+    drawImageCover(
       gameState.images.mountains,
-      0, baseY - mountainHeight,
-      gameState.canvas.width, mountainHeight
+      0,
+      baseY - mountainHeight,
+      gameState.canvas.width,
+      mountainHeight
     );
   } else {
     // Fallback to programmatically drawn mountains
     // First mountain range (furthest)
-    const mountainGradient1 = gameState.ctx.createLinearGradient(0, baseY - mountainHeight, 0, baseY);
-    mountainGradient1.addColorStop(0, '#8BB9DD'); // Light blue-gray
-    mountainGradient1.addColorStop(1, '#6A8CAD'); // Darker blue-gray
+    const mountainGradient1 = gameState.ctx.createLinearGradient(
+      0,
+      baseY - mountainHeight,
+      0,
+      baseY
+    );
+    mountainGradient1.addColorStop(0, "#8BB9DD"); // Light blue-gray
+    mountainGradient1.addColorStop(1, "#6A8CAD"); // Darker blue-gray
     gameState.ctx.fillStyle = mountainGradient1;
-    
+
     gameState.ctx.beginPath();
     gameState.ctx.moveTo(0, baseY);
-    
+
     // Create jagged mountain silhouette
     const mountainWidth = gameState.canvas.width * 1.5;
     const segments = 10;
     const segmentWidth = mountainWidth / segments;
-    
+
     for (let i = 0; i <= segments; i++) {
       const x = i * segmentWidth;
       // Use sine function for natural-looking mountains
@@ -424,29 +606,34 @@ function drawMountains() {
       const y = baseY - mountainHeight * heightVariation;
       gameState.ctx.lineTo(x, y);
     }
-    
+
     gameState.ctx.lineTo(mountainWidth, baseY);
     gameState.ctx.closePath();
     gameState.ctx.fill();
-    
+
     // Second mountain range (closer)
-    const mountainGradient2 = gameState.ctx.createLinearGradient(0, baseY - mountainHeight * 0.7, 0, baseY);
-    mountainGradient2.addColorStop(0, '#6A8CAD'); // Match the darker color from first range
-    mountainGradient2.addColorStop(1, '#5D7E9C'); // Even darker blue-gray
+    const mountainGradient2 = gameState.ctx.createLinearGradient(
+      0,
+      baseY - mountainHeight * 0.7,
+      0,
+      baseY
+    );
+    mountainGradient2.addColorStop(0, "#6A8CAD"); // Match the darker color from first range
+    mountainGradient2.addColorStop(1, "#5D7E9C"); // Even darker blue-gray
     gameState.ctx.fillStyle = mountainGradient2;
-    
+
     gameState.ctx.beginPath();
     gameState.ctx.moveTo(0, baseY);
-    
+
     // Create jagged mountain silhouette with different pattern
     for (let i = 0; i <= segments; i++) {
       const x = i * segmentWidth - 100; // Offset for variation
       // Different sine pattern for second range
       const heightVariation = Math.sin(i * 1.2 + 2) * 0.4 + 0.6;
-      const y = baseY - (mountainHeight * 0.7) * heightVariation;
+      const y = baseY - mountainHeight * 0.7 * heightVariation;
       gameState.ctx.lineTo(x, y);
     }
-    
+
     gameState.ctx.lineTo(mountainWidth, baseY);
     gameState.ctx.closePath();
     gameState.ctx.fill();
@@ -455,20 +642,24 @@ function drawMountains() {
 
 function drawGrassDetails() {
   // Only draw grass details if we're not using a ground image
-  if (!gameState.images.ground || !gameState.images.ground.complete || gameState.images.ground.naturalWidth === 0) {
+  if (
+    !gameState.images.ground ||
+    !gameState.images.ground.complete ||
+    gameState.images.ground.naturalWidth === 0
+  ) {
     const groundY = gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO;
     const grassHeight = Math.min(15, gameState.canvas.height * 0.02);
-    
-    gameState.ctx.fillStyle = '#90EE90'; // Light green
-    
+
+    gameState.ctx.fillStyle = "#90EE90"; // Light green
+
     // Draw individual grass blades
     for (let x = 0; x < gameState.canvas.width; x += 15) {
       const randomHeight = grassHeight * (0.7 + Math.random() * 0.6);
       const randomWidth = 2 + Math.random() * 3;
-      
+
       gameState.ctx.beginPath();
       gameState.ctx.moveTo(x, groundY);
-      gameState.ctx.lineTo(x + randomWidth/2, groundY - randomHeight);
+      gameState.ctx.lineTo(x + randomWidth / 2, groundY - randomHeight);
       gameState.ctx.lineTo(x + randomWidth, groundY);
       gameState.ctx.closePath();
       gameState.ctx.fill();
@@ -479,46 +670,57 @@ function drawGrassDetails() {
 function drawGround() {
   const groundY = gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO;
   const groundHeight = gameState.canvas.height * 0.25;
-  
+
   // Check if ground image is available and loaded
-  if (gameState.images.ground && gameState.images.ground.complete && gameState.images.ground.naturalWidth !== 0) {
-    // Draw ground image scaled to fit
-    gameState.ctx.drawImage(
+  if (
+    gameState.images.ground &&
+    gameState.images.ground.complete &&
+    gameState.images.ground.naturalWidth !== 0
+  ) {
+    // Draw ground image with aspect ratio preservation (cover mode)
+    // But align to top instead of center to prevent overlapping with player
+    drawImageCoverAlignTop(
       gameState.images.ground,
-      0, groundY,
-      gameState.canvas.width, groundHeight
+      0,
+      groundY,
+      gameState.canvas.width,
+      groundHeight
     );
   } else {
     // Fallback to gradient ground
     const groundGradient = gameState.ctx.createLinearGradient(
-      0, groundY, 0, gameState.canvas.height
+      0,
+      groundY,
+      0,
+      gameState.canvas.height
     );
     groundGradient.addColorStop(0, CONFIG.GROUND_COLOR.TOP);
-    groundGradient.addColorStop(0.3, '#7BC47F'); // Middle tone
+    groundGradient.addColorStop(0.3, "#7BC47F"); // Middle tone
     groundGradient.addColorStop(1, CONFIG.GROUND_COLOR.BOTTOM);
     gameState.ctx.fillStyle = groundGradient;
-    gameState.ctx.fillRect(
-      0, groundY,
-      gameState.canvas.width, groundHeight
-    );
+    gameState.ctx.fillRect(0, groundY, gameState.canvas.width, groundHeight);
   }
 }
 
 function drawGroundTexture() {
   const groundY = gameState.canvas.height * CONFIG.GROUND_HEIGHT_RATIO;
   const groundHeight = gameState.canvas.height * 0.25;
-  
+
   // Only add texture if we're not using an image (to avoid overlaying texture on the image)
-  if (!gameState.images.ground || !gameState.images.ground.complete || gameState.images.ground.naturalWidth === 0) {
+  if (
+    !gameState.images.ground ||
+    !gameState.images.ground.complete ||
+    gameState.images.ground.naturalWidth === 0
+  ) {
     // Add subtle texture to ground
-    gameState.ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-    
+    gameState.ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+
     // Draw some random dots/specs for texture
     for (let i = 0; i < 100; i++) {
       const x = Math.random() * gameState.canvas.width;
       const y = groundY + Math.random() * groundHeight * 0.7;
       const size = 1 + Math.random() * 3;
-      
+
       gameState.ctx.beginPath();
       gameState.ctx.arc(x, y, size, 0, Math.PI * 2);
       gameState.ctx.fill();
@@ -567,7 +769,7 @@ function drawScaledImage(
 function roundedRect(ctx, x, y, width, height, radius) {
   if (width < 2 * radius) radius = width / 2;
   if (height < 2 * radius) radius = height / 2;
-  
+
   ctx.beginPath();
   ctx.moveTo(x + radius, y);
   ctx.arcTo(x + width, y, x + width, y + height, radius);
@@ -578,16 +780,79 @@ function roundedRect(ctx, x, y, width, height, radius) {
   return ctx;
 }
 
+// Helper function to draw images in "cover" mode (like CSS background-size: cover)
+// This maintains aspect ratio while ensuring the image covers the entire target area
+function drawImageCover(img, targetX, targetY, targetWidth, targetHeight) {
+  // Get the image dimensions
+  const imgWidth = img.naturalWidth;
+  const imgHeight = img.naturalHeight;
+
+  // Calculate the scaling ratio to cover the target area
+  const widthRatio = targetWidth / imgWidth;
+  const heightRatio = targetHeight / imgHeight;
+  const scale = Math.max(widthRatio, heightRatio);
+
+  // Calculate the scaled dimensions
+  const scaledWidth = imgWidth * scale;
+  const scaledHeight = imgHeight * scale;
+
+  // Calculate position to center the image in the target area
+  const x = targetX + (targetWidth - scaledWidth) / 2;
+  const y = targetY + (targetHeight - scaledHeight) / 2;
+
+  // Draw the image
+  gameState.ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+}
+
+// Helper function similar to drawImageCover but aligns the image to the top
+// This is useful for ground images to prevent them from overlapping with the player
+function drawImageCoverAlignTop(
+  img,
+  targetX,
+  targetY,
+  targetWidth,
+  targetHeight
+) {
+  // Get the image dimensions
+  const imgWidth = img.naturalWidth;
+  const imgHeight = img.naturalHeight;
+
+  // Calculate the scaling ratio to cover the target area
+  const widthRatio = targetWidth / imgWidth;
+  const heightRatio = targetHeight / imgHeight;
+  const scale = Math.max(widthRatio, heightRatio);
+
+  // Calculate the scaled dimensions
+  const scaledWidth = imgWidth * scale;
+  const scaledHeight = imgHeight * scale;
+
+  // Calculate position to center horizontally but align to top vertically
+  const x = targetX + (targetWidth - scaledWidth) / 2;
+  // Use targetY directly instead of centering vertically
+  const y = targetY;
+
+  // Draw the image
+  gameState.ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+}
+
 // Game loop functions
 function update() {
   if (gameState.gameOver) return;
 
-  // Update clouds
-  gameState.clouds.forEach((cloud) => {
-    cloud.x -= cloud.speed;
-    if (cloud.x + cloud.size < 0) {
-      cloud.x = gameState.canvas.width;
-      cloud.y = Math.random() * (gameState.canvas.height / 2);
+  // Update sky objects (clouds, asteroids, or rockets)
+  gameState.skyObjects.forEach((obj) => {
+    obj.x -= obj.speed;
+
+    // Rotate asteroids and rockets slowly
+    if (gameState.skyObjectType !== "clouds") {
+      obj.rotation += 0.01;
+    }
+
+    if (obj.x + obj.size < 0) {
+      obj.x = gameState.canvas.width;
+      obj.y = Math.random() * (gameState.canvas.height / 2);
+      obj.speed = 0.5 + Math.random() * 0.5;
+      obj.rotation = Math.random() * Math.PI * 2;
     }
   });
 
@@ -621,25 +886,27 @@ function update() {
   if (Math.random() < (CONFIG.SPAWN_RATES.OBSTACLE || 0.015)) {
     gameState.obstacles.push(spawnObstacle());
   }
-  
+
   // Debug log for spawning
   if (gameState.frameCount % 60 === 0) {
-    console.log(`Current tokens: ${gameState.vibeTokens.length}, obstacles: ${gameState.obstacles.length}`);
+    console.log(
+      `Current tokens: ${gameState.vibeTokens.length}, obstacles: ${gameState.obstacles.length}`
+    );
   }
 
   // Move objects with a guaranteed minimum speed
   const movementSpeed = CONFIG.MOVEMENT_SPEED || (isMobile ? 5 : 10);
-  
+
   // Log movement speed for debugging
   if (gameState.frameCount % 60 === 0) {
     console.log(`Movement speed: ${movementSpeed}`);
   }
-  
+
   // Move tokens and obstacles
   gameState.vibeTokens.forEach((token) => {
     token.x -= movementSpeed;
   });
-  
+
   gameState.obstacles.forEach((obstacle) => {
     obstacle.x -= movementSpeed;
   });
@@ -682,19 +949,23 @@ function draw() {
 
   // Draw sky (image or gradient)
   drawSky();
-  
-  // Draw distant mountains for depth
-  drawMountains();
-  
-  // Draw clouds with parallax effect
-  gameState.clouds.forEach((cloud) => drawCloud(cloud.x, cloud.y, cloud.size, cloud.opacity));
+
+  // Draw distant mountains for depth only if showMountains is true
+  if (gameState.showMountains) {
+    drawMountains();
+  }
+
+  // Draw sky objects with parallax effect
+  gameState.skyObjects.forEach((obj) =>
+    drawSkyObject(obj.x, obj.y, obj.size, obj.opacity, obj.rotation)
+  );
 
   // Draw ground
   drawGround();
-  
+
   // Draw grass details on top of the ground
   drawGrassDetails();
-  
+
   // Draw ground texture
   drawGroundTexture();
 
@@ -830,8 +1101,11 @@ function draw() {
   // Draw HUD with enhanced styling
   // First, draw a subtle backdrop for the HUD
   const hudBackdropY = gameState.hud.y - gameState.hud.scoreFontSize * 1.2;
-  const hudBackdropHeight = gameState.hud.scoreFontSize * 1.2 + gameState.hud.padding * 3 + CONFIG.HUD.METER_HEIGHT;
-  
+  const hudBackdropHeight =
+    gameState.hud.scoreFontSize * 1.2 +
+    gameState.hud.padding * 3 +
+    CONFIG.HUD.METER_HEIGHT;
+
   // Create a semi-transparent backdrop with rounded corners
   gameState.ctx.save();
   gameState.ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
@@ -844,7 +1118,7 @@ function draw() {
     10
   );
   gameState.ctx.fill();
-  
+
   // Add a subtle border
   gameState.ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
   gameState.ctx.lineWidth = 2;
@@ -858,29 +1132,29 @@ function draw() {
   );
   gameState.ctx.stroke();
   gameState.ctx.restore();
-  
+
   // Draw score with enhanced styling
   gameState.ctx.save();
   gameState.ctx.font = `bold ${gameState.hud.scoreFontSize}px Poppins, Arial`;
   gameState.ctx.textAlign = "center";
-  
+
   // Text shadow for depth
   gameState.ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
   gameState.ctx.shadowBlur = 5;
   gameState.ctx.shadowOffsetX = 2;
   gameState.ctx.shadowOffsetY = 2;
-  
+
   // Create a gradient for the score text
   const scoreGradient = gameState.ctx.createLinearGradient(
-    gameState.canvas.width / 2 - 100, 
-    gameState.hud.y - gameState.hud.scoreFontSize, 
-    gameState.canvas.width / 2 + 100, 
+    gameState.canvas.width / 2 - 100,
+    gameState.hud.y - gameState.hud.scoreFontSize,
+    gameState.canvas.width / 2 + 100,
     gameState.hud.y
   );
   scoreGradient.addColorStop(0, "#4CAF50");
   scoreGradient.addColorStop(1, "#2E7D32");
   gameState.ctx.fillStyle = scoreGradient;
-  
+
   gameState.ctx.fillText(
     `Score: ${gameState.score}`,
     gameState.canvas.width / 2,
@@ -890,13 +1164,13 @@ function draw() {
 
   // Draw chill meter with enhanced styling
   gameState.ctx.save();
-  
+
   // Meter background with rounded corners
   gameState.ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
   const meterY = gameState.hud.y + gameState.hud.padding * 2;
   const meterHeight = CONFIG.HUD.METER_HEIGHT;
   const cornerRadius = Math.min(8, meterHeight / 2);
-  
+
   roundedRect(
     gameState.ctx,
     gameState.hud.x,
@@ -906,7 +1180,7 @@ function draw() {
     cornerRadius
   );
   gameState.ctx.fill();
-  
+
   // Create a dynamic gradient based on chill level
   const chillGradient = gameState.ctx.createLinearGradient(
     gameState.hud.x,
@@ -914,7 +1188,7 @@ function draw() {
     gameState.hud.x + gameState.hud.width,
     0
   );
-  
+
   if (gameState.chillMeter > 70) {
     // High chill - cool colors
     chillGradient.addColorStop(0, "#00FF87");
@@ -928,11 +1202,14 @@ function draw() {
     chillGradient.addColorStop(0, "#FF5722");
     chillGradient.addColorStop(1, "#F44336");
   }
-  
+
   gameState.ctx.fillStyle = chillGradient;
-  
+
   // Fill meter with rounded corners
-  const fillWidth = Math.max(cornerRadius * 2, (gameState.hud.width * gameState.chillMeter) / 100);
+  const fillWidth = Math.max(
+    cornerRadius * 2,
+    (gameState.hud.width * gameState.chillMeter) / 100
+  );
   roundedRect(
     gameState.ctx,
     gameState.hud.x,
@@ -942,21 +1219,28 @@ function draw() {
     cornerRadius
   );
   gameState.ctx.fill();
-  
+
   // Add a subtle highlight to the top of the meter for 3D effect
   gameState.ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
   gameState.ctx.beginPath();
   gameState.ctx.moveTo(gameState.hud.x + cornerRadius, meterY);
   gameState.ctx.lineTo(gameState.hud.x + fillWidth - cornerRadius, meterY);
   gameState.ctx.quadraticCurveTo(
-    gameState.hud.x + fillWidth, meterY,
-    gameState.hud.x + fillWidth, meterY + cornerRadius
+    gameState.hud.x + fillWidth,
+    meterY,
+    gameState.hud.x + fillWidth,
+    meterY + cornerRadius
   );
   gameState.ctx.lineTo(gameState.hud.x + fillWidth, meterY + meterHeight / 3);
-  gameState.ctx.lineTo(gameState.hud.x + cornerRadius, meterY + meterHeight / 3);
+  gameState.ctx.lineTo(
+    gameState.hud.x + cornerRadius,
+    meterY + meterHeight / 3
+  );
   gameState.ctx.quadraticCurveTo(
-    gameState.hud.x, meterY + meterHeight / 3,
-    gameState.hud.x, meterY + cornerRadius
+    gameState.hud.x,
+    meterY + meterHeight / 3,
+    gameState.hud.x,
+    meterY + cornerRadius
   );
   gameState.ctx.closePath();
   gameState.ctx.fill();
@@ -966,21 +1250,21 @@ function draw() {
   gameState.ctx.save();
   gameState.ctx.font = `bold ${gameState.hud.chillFontSize}px Poppins, Arial`;
   gameState.ctx.textAlign = "center";
-  
+
   // Text shadow
   gameState.ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
   gameState.ctx.shadowBlur = 3;
   gameState.ctx.shadowOffsetX = 1;
   gameState.ctx.shadowOffsetY = 1;
-  
+
   // Create gradient for text
   const chillTextGradient = gameState.ctx.createLinearGradient(
-    gameState.canvas.width / 2 - 80, 
-    0, 
-    gameState.canvas.width / 2 + 80, 
+    gameState.canvas.width / 2 - 80,
+    0,
+    gameState.canvas.width / 2 + 80,
     0
   );
-  
+
   if (gameState.chillMeter > 70) {
     chillTextGradient.addColorStop(0, "#2E7D32");
     chillTextGradient.addColorStop(1, "#1B5E20");
@@ -991,14 +1275,14 @@ function draw() {
     chillTextGradient.addColorStop(0, "#C62828");
     chillTextGradient.addColorStop(1, "#B71C1C");
   }
-  
+
   gameState.ctx.fillStyle = chillTextGradient;
-  
+
   const chillTextSpacing = Math.max(
     CONFIG.HUD.MIN_SPACING,
     gameState.canvas.height * CONFIG.HUD.SPACING_RATIO
   );
-  
+
   gameState.ctx.fillText(
     `Chill: ${Math.round(gameState.chillMeter)}%`,
     gameState.canvas.width / 2,
@@ -1130,16 +1414,16 @@ function startGame() {
     }
     const deltaTime = timestamp - gameState.lastFrameTime;
     gameState.lastFrameTime = timestamp;
-    
+
     // Increment frame counter for animations and debugging
     gameState.frameCount++;
-    
+
     // Update game state
     update();
-    
+
     // Draw everything
     draw();
-    
+
     // Continue the game loop
     requestAnimationFrame(gameLoop);
   }
