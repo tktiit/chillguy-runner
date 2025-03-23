@@ -48,9 +48,9 @@ function gameLoop(timestamp) {
       const currentTime = timestamp;
       const timeDiff = currentTime - lastScoreIncrementTime;
 
-      // If one second has passed, increment score by 1
+      // If one second has passed, increment score by CONFIG.SCORE_PER_SECOND
       if (timeDiff >= 1000) {
-        window.gameState.score += 1;
+        window.gameState.score += CONFIG.SCORE_PER_SECOND;
         lastScoreIncrementTime = currentTime;
       }
 

@@ -1,4 +1,5 @@
 // Utility functions for the Chillguy Runner game
+import { CONFIG } from './config.js';
 
 /**
  * Draw a rounded rectangle
@@ -226,8 +227,10 @@ function clamp(value, min, max) {
  * @param {number} score - Score to save
  */
 function saveHighScore(score) {
+  if (!CONFIG.HIGH_SCORE.ENABLED) return;
+  
   try {
-    localStorage.setItem('chillguyHighScore', score.toString());
+    localStorage.setItem(CONFIG.HIGH_SCORE.STORAGE_KEY, score.toString());
   } catch (e) {
     console.error("Could not save high score:", e);
   }
@@ -238,8 +241,10 @@ function saveHighScore(score) {
  * @returns {number} - Loaded high score or 0 if not found
  */
 function loadHighScore() {
+  if (!CONFIG.HIGH_SCORE.ENABLED) return 0;
+  
   try {
-    const score = localStorage.getItem('chillguyHighScore');
+    const score = localStorage.getItem(CONFIG.HIGH_SCORE.STORAGE_KEY);
     return score ? parseInt(score, 10) : 0;
   } catch (e) {
     console.error("Could not load high score:", e);

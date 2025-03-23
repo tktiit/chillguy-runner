@@ -4,6 +4,7 @@ import { drawTokens, drawObstacles, updateGameObjects } from './obstacles.js';
 import { updatePlayerPhysics, checkGameObjectCollisions } from './physics.js';
 import { roundedRect, drawImageCover, drawImageCoverAlignTop } from './utils.js';
 import { updatePlatforms, spawnPlatform } from './platforms.js';
+import { updateEffects, drawEffects, getChillMeterPulseColor } from './effects.js';
 
 // We'll access gameState via a global reference to avoid circular imports
 
@@ -482,19 +483,28 @@ function drawHUD() {
     meterY
   );
   
+  let baseColor1, baseColor2;
+  
   if (gameState.chillMeter > 70) {
     // High chill - cool colors
-    chillGradient.addColorStop(0, "#00BFFF");
-    chillGradient.addColorStop(1, "#1E90FF");
+    baseColor1 = "#00BFFF";
+    baseColor2 = "#1E90FF";
   } else if (gameState.chillMeter > 30) {
     // Medium chill - neutral colors
-    chillGradient.addColorStop(0, "#FFD700");
-    chillGradient.addColorStop(1, "#FFA500");
+    baseColor1 = "#FFD700";
+    baseColor2 = "#FFA500";
   } else {
     // Low chill - hot colors
-    chillGradient.addColorStop(0, "#FF5722");
-    chillGradient.addColorStop(1, "#F44336");
+    baseColor1 = "#FF5722";
+    baseColor2 = "#F44336";
   }
+  
+  // Apply pulse effect if active
+  const pulseColor1 = getChillMeterPulseColor(baseColor1);
+  const pulseColor2 = getChillMeterPulseColor(baseColor2);
+  
+  chillGradient.addColorStop(0, pulseColor1);
+  chillGradient.addColorStop(1, pulseColor2);
   
   gameState.ctx.fillStyle = chillGradient;
   
@@ -555,92 +565,98 @@ function drawHUD() {
   
   // Draw game over message if game is over
   if (gameState.gameOver) {
-    gameState.ctx.save();
-    
-    // Semi-transparent overlay
-    gameState.ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-    gameState.ctx.fillRect(0, 0, gameState.canvas.width, gameState.canvas.height);
-    
-    // Game over text
-    gameState.ctx.font = `bold ${gameState.hud.gameOverFontSize}px Arial`;
-    gameState.ctx.textAlign = "center";
-    gameState.ctx.fillStyle = "#FFF";
-    gameState.ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
-    gameState.ctx.shadowBlur = 5;
-    gameState.ctx.fillText(
-      "GAME OVER",
-      gameState.canvas.width / 2,
-      gameState.canvas.height / 2 - gameState.hud.gameOverFontSize
-    );
-    
-    // Score text
-    gameState.ctx.font = `bold ${gameState.hud.scoreFontSize * 1.2}px Arial`;
-    gameState.ctx.fillText(
-      `Score: ${gameState.score}`,
-      gameState.canvas.width / 2,
-      gameState.canvas.height / 2 + gameState.hud.scoreFontSize
-    );
-    
-    // High score text
-    gameState.ctx.fillText(
-      `High Score: ${gameState.highScore}`,
-      gameState.canvas.width / 2,
-      gameState.canvas.height / 2 + gameState.hud.scoreFontSize * 2.5
-    );
-    
-    // Draw restart button
-    const buttonWidth = Math.min(200, gameState.canvas.width * 0.4);
-    const buttonHeight = Math.min(50, gameState.canvas.height * 0.08);
-    const buttonX = gameState.canvas.width / 2 - buttonWidth / 2;
-    const buttonY = gameState.canvas.height / 2 + gameState.hud.scoreFontSize * 4;
-    const buttonRadius = buttonHeight / 3;
-    
-    // Store button position and dimensions for click detection
-    gameState.restartButton = {
-      x: buttonX,
-      y: buttonY,
-      width: buttonWidth,
-      height: buttonHeight
-    };
-    
-    // Button background
-    gameState.ctx.fillStyle = "#4CAF50";
-    roundedRect(
-      gameState.ctx,
-      buttonX,
-      buttonY,
-      buttonWidth,
-      buttonHeight,
-      buttonRadius
-    );
-    gameState.ctx.fill();
-    
-    // Button border
-    gameState.ctx.strokeStyle = "#FFFFFF";
-    gameState.ctx.lineWidth = 2;
-    roundedRect(
-      gameState.ctx,
-      buttonX,
-      buttonY,
-      buttonWidth,
-      buttonHeight,
-      buttonRadius
-    );
-    gameState.ctx.stroke();
-    
-    // Button text
-    gameState.ctx.font = `bold ${gameState.hud.scoreFontSize}px Arial`;
-    gameState.ctx.fillStyle = "#FFFFFF";
-    gameState.ctx.textAlign = "center";
-    gameState.ctx.textBaseline = "middle";
-    gameState.ctx.fillText(
-      "RESTART",
-      gameState.canvas.width / 2,
-      buttonY + buttonHeight / 2
-    );
-    
-    gameState.ctx.restore();
+    renderGameOverScreen();
   }
+}
+
+// Render game over screen
+function renderGameOverScreen() {
+  gameState.ctx.save();
+  
+  // Semi-transparent overlay
+  gameState.ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+  gameState.ctx.fillRect(0, 0, gameState.canvas.width, gameState.canvas.height);
+  
+  // Game over text
+  gameState.ctx.font = `bold ${gameState.hud.gameOverFontSize}px ${CONFIG.GAME_OVER.FONT}`;
+  gameState.ctx.textAlign = "center";
+  gameState.ctx.fillStyle = CONFIG.GAME_OVER.TITLE_COLOR;
+  gameState.ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+  gameState.ctx.shadowBlur = 5;
+  gameState.ctx.fillText(
+    "GAME OVER",
+    gameState.canvas.width / 2,
+    gameState.canvas.height / 2 - gameState.hud.gameOverFontSize
+  );
+  
+  // Score text
+  gameState.ctx.font = `bold ${gameState.hud.scoreFontSize * 1.2}px ${CONFIG.GAME_OVER.FONT}`;
+  gameState.ctx.fillStyle = CONFIG.GAME_OVER.SCORE_COLOR;
+  gameState.ctx.fillText(
+    `Score: ${gameState.score}`,
+    gameState.canvas.width / 2,
+    gameState.canvas.height / 2 + gameState.hud.scoreFontSize
+  );
+  
+  // High score text
+  gameState.ctx.fillText(
+    `High Score: ${gameState.highScore}`,
+    gameState.canvas.width / 2,
+    gameState.canvas.height / 2 + gameState.hud.scoreFontSize * 2.5
+  );
+  
+  // Draw restart button
+  const buttonWidth = Math.min(200, gameState.canvas.width * 0.4);
+  const buttonHeight = Math.min(50, gameState.canvas.height * 0.08);
+  const buttonX = gameState.canvas.width / 2 - buttonWidth / 2;
+  const buttonY = gameState.canvas.height / 2 + gameState.hud.scoreFontSize * 4;
+  const buttonRadius = CONFIG.GAME_OVER.BUTTON.CORNER_RADIUS;
+  
+  // Store button position and dimensions for click detection
+  gameState.restartButton = {
+    x: buttonX,
+    y: buttonY,
+    width: buttonWidth,
+    height: buttonHeight
+  };
+  
+  // Button background
+  gameState.ctx.fillStyle = CONFIG.GAME_OVER.BUTTON.BACKGROUND_COLOR;
+  roundedRect(
+    gameState.ctx,
+    buttonX,
+    buttonY,
+    buttonWidth,
+    buttonHeight,
+    buttonRadius
+  );
+  gameState.ctx.fill();
+  
+  // Button border
+  gameState.ctx.strokeStyle = CONFIG.GAME_OVER.BUTTON.BORDER_COLOR;
+  gameState.ctx.lineWidth = CONFIG.GAME_OVER.BUTTON.BORDER_WIDTH;
+  roundedRect(
+    gameState.ctx,
+    buttonX,
+    buttonY,
+    buttonWidth,
+    buttonHeight,
+    buttonRadius
+  );
+  gameState.ctx.stroke();
+  
+  // Button text
+  gameState.ctx.font = `bold ${gameState.hud.scoreFontSize}px ${CONFIG.GAME_OVER.FONT}`;
+  gameState.ctx.fillStyle = CONFIG.GAME_OVER.BUTTON.TEXT_COLOR;
+  gameState.ctx.textAlign = "center";
+  gameState.ctx.textBaseline = "middle";
+  gameState.ctx.fillText(
+    CONFIG.GAME_OVER.BUTTON.TEXT,
+    gameState.canvas.width / 2,
+    buttonY + buttonHeight / 2
+  );
+  
+  gameState.ctx.restore();
 }
 
 // Main update function
@@ -687,6 +703,9 @@ function update() {
 
   // Check for collisions
   checkGameObjectCollisions();
+  
+  // Update visual effects
+  updateEffects();
 }
 
 // Main draw function
@@ -723,6 +742,24 @@ function draw() {
 
   // Draw ground texture
   drawGroundTexture();
+  
+  // Draw tokens and obstacles
+  drawTokens();
+  drawObstacles();
+  
+  // Draw player
+  drawPlayer();
+  
+  // Draw visual effects (particles, score popups)
+  drawEffects(gameState.ctx);
+  
+  // Draw HUD
+  drawHUD();
+  
+  // Draw game over screen if game is over
+  if (gameState.gameOver) {
+    renderGameOverScreen();
+  }
 }
 
 export { 
@@ -734,5 +771,6 @@ export {
   drawMountains, 
   drawGround, 
   drawGroundTexture, 
-  drawSkyObject 
+  drawSkyObject,
+  renderGameOverScreen
 };

@@ -1,5 +1,6 @@
 import { CONFIG } from './config.js';
 import { playSound } from './sound.js';
+import { createSparkleEffect, createScorePopup, activateChillMeterPulse, applyTokenMagnetism, effects } from './effects.js';
 
 // We'll access gameState via a global reference to avoid circular imports
 
@@ -123,6 +124,27 @@ function checkGameObjectCollisions() {
   if (!window.gameState.vibeTokens) window.gameState.vibeTokens = [];
   if (!window.gameState.obstacles) window.gameState.obstacles = [];
   
+  // Apply token magnetism effect if enabled
+  if (effects.magnetism.active) {
+    applyTokenMagnetism(window.gameState.player, window.gameState.vibeTokens);
+  } else {
+    // Check if player is close to any token for magnetism effect
+    for (let i = 0; i < window.gameState.vibeTokens.length; i++) {
+      const token = window.gameState.vibeTokens[i];
+      if (token.collected) continue;
+      
+      const dx = window.gameState.player.x + window.gameState.player.width / 2 - (token.x + token.width / 2);
+      const dy = window.gameState.player.y + window.gameState.player.height / 2 - (token.y + token.height / 2);
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // Enable magnetism when player gets close to tokens
+      if (distance < effects.magnetism.radius * 1.5) {
+        effects.magnetism.active = true;
+        break;
+      }
+    }
+  }
+
   // Handle collisions with tokens
   for (let i = 0; i < window.gameState.vibeTokens.length; i++) {
     const token = window.gameState.vibeTokens[i];
@@ -130,8 +152,8 @@ function checkGameObjectCollisions() {
       // Mark token as collected
       token.collected = true;
       
-      // Increase score by 10 points when collecting a token
-      window.gameState.score += 10;
+      // Increase score when collecting a token
+      window.gameState.score += CONFIG.SCORE_INCREMENT;
       window.gameState.chillMeter = Math.min(
         window.gameState.chillMeter + (CONFIG.CHILL_METER?.INCREMENT || 10),
         100
@@ -139,6 +161,11 @@ function checkGameObjectCollisions() {
       
       // Play token collection sound
       playSound('token');
+      
+      // Create visual effects
+      createSparkleEffect(token.x + token.width / 2, token.y + token.height / 2);
+      createScorePopup(token.x + token.width / 2, token.y, CONFIG.SCORE_INCREMENT);
+      activateChillMeterPulse();
       
       // Remove token after a short delay (for animation if needed)
       setTimeout(() => {

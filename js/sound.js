@@ -1,5 +1,6 @@
 // Sound management for Chillguy Runner game
 import { initAudioContext, generateAllSounds } from './soundGenerator.js';
+import { CONFIG } from './config.js';
 
 // Sound effects object to store all game sounds
 const sounds = {
@@ -13,11 +14,11 @@ const sounds = {
 // Background music reference
 let backgroundMusic = null;
 
-// Volume settings
+// Volume settings from config
 const VOLUME = {
-  MASTER: 0.7,
-  EFFECTS: 0.8,
-  MUSIC: 0.5
+  MASTER: CONFIG.SOUND.VOLUME.MASTER,
+  EFFECTS: CONFIG.SOUND.VOLUME.EFFECTS,
+  MUSIC: CONFIG.SOUND.VOLUME.MUSIC
 };
 
 /**
@@ -137,6 +138,12 @@ function stopSound(sound) {
  * Play background music
  */
 function playBackgroundMusic() {
+  // Only play music if it's enabled in the config
+  if (!CONFIG.SOUND.MUSIC_ENABLED) {
+    stopBackgroundMusic();
+    return;
+  }
+  
   if (backgroundMusic) {
     stopSound(backgroundMusic);
   }
@@ -158,7 +165,7 @@ function stopBackgroundMusic() {
  * @param {boolean} muted - Whether sounds should be muted
  */
 function setMuted(muted) {
-  VOLUME.MASTER = muted ? 0 : 0.7;
+  VOLUME.MASTER = muted ? 0 : CONFIG.SOUND.VOLUME.MASTER;
   
   // Update background music volume if it's playing
   if (backgroundMusic) {

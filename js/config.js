@@ -14,6 +14,17 @@ const BASE_CONFIG = {
   },
   SHOW_MOUNTAINS: false,
 
+  // Sound settings
+  SOUND: {
+    ENABLED: true, // Default sound state
+    VOLUME: {
+      MASTER: 0.7,
+      EFFECTS: 0.8,
+      MUSIC: 0.5,
+    },
+    MUSIC_ENABLED: true, // Separate toggle for background music
+  },
+
   // Sky object settings
   SKY_OBJECTS: {
     TYPE: "clouds", // clouds, asteroids, or rockets
@@ -37,6 +48,27 @@ const BASE_CONFIG = {
   // Scoring settings
   SCORE_INCREMENT: 10, // Points per token
   SCORE_PER_SECOND: 1, // Points per second of gameplay
+
+  // High score settings
+  HIGH_SCORE: {
+    STORAGE_KEY: "chillguyHighScore",
+    ENABLED: true, // Whether to save and load high scores
+  },
+
+  // Game over screen settings
+  GAME_OVER: {
+    FONT: "Arial",
+    TITLE_COLOR: "#FFFFFF",
+    SCORE_COLOR: "#FFFFFF",
+    BUTTON: {
+      BACKGROUND_COLOR: "#4CAF50",
+      TEXT_COLOR: "#FFFFFF",
+      BORDER_COLOR: "#FFFFFF",
+      TEXT: "RESTART",
+      BORDER_WIDTH: 2,
+      CORNER_RADIUS: 10, // Rounded corners radius
+    },
+  },
 
   // Chill meter settings
   CHILL_DECREMENT: 0.05, // Default chill meter decrease per frame
