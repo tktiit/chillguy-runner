@@ -1,7 +1,7 @@
 // Main entry point for Chillguy Runner game
 import { CONFIG } from "./config.js";
 import { initializeGame, resetGame, changeSkyObjectType } from "./core.js";
-import { update, draw, drawPlayer, drawHUD } from "./rendering.js";
+import { update, draw, drawPlayer, drawHUD, renderGameOverScreen } from "./rendering.js";
 import { preloadImages, loadHighScore, saveHighScore } from "./utils.js";
 import { initInputHandlers } from "./input.js";
 import { drawTokens, drawObstacles } from "./obstacles.js";
@@ -27,24 +27,54 @@ function gameLoop(timestamp) {
   }
 
   if (!window.gameState.paused) {
-    // Update game state
-    update();
+    if (window.gameState.gameOver) {
+      // If game is over, only clear the canvas and draw the game over screen
+      // This prevents unnecessary rendering and processing when the game is over
+      window.gameState.ctx.clearRect(
+        0,
+        0,
+        window.gameState.canvas.width,
+        window.gameState.canvas.height
+      );
+      
+      // Draw a static background for game over screen
+      const skyGradient = window.gameState.ctx.createLinearGradient(
+        0,
+        0,
+        0,
+        window.gameState.canvas.height
+      );
+      skyGradient.addColorStop(0, "#87CEEB"); // Sky blue at top
+      skyGradient.addColorStop(1, "#E0F7FF"); // Lighter blue at horizon
+      window.gameState.ctx.fillStyle = skyGradient;
+      window.gameState.ctx.fillRect(
+        0,
+        0,
+        window.gameState.canvas.width,
+        window.gameState.canvas.height
+      );
+      
+      // Draw the game over screen
+      renderGameOverScreen();
+    } else {
+      // Normal game update and rendering when not game over
+      // Update game state
+      update();
 
-    // Draw game elements
-    draw();
+      // Draw game elements
+      draw();
 
-    // Draw player
-    drawPlayer();
+      // Draw player
+      drawPlayer();
 
-    // Draw tokens and obstacles
-    drawTokens();
-    drawObstacles();
+      // Draw tokens and obstacles
+      drawTokens();
+      drawObstacles();
 
-    // Draw HUD (score, chill meter, etc.)
-    drawHUD();
+      // Draw HUD (score, chill meter, etc.)
+      drawHUD();
 
-    // Update score - 1 point per second
-    if (!window.gameState.gameOver) {
+      // Update score - 1 point per second
       // Calculate time difference in milliseconds
       const currentTime = timestamp;
       const timeDiff = currentTime - lastScoreIncrementTime;
