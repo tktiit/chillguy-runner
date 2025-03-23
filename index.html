@@ -39,15 +39,41 @@
       <!-- Game Canvas -->
       <canvas id="gameCanvas"></canvas>
       
-      <!-- Sound Toggle Button -->
-      <div id="soundToggle" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; color: white; z-index: 100; cursor: pointer;">
+      <!-- Sound Toggle Button - Improved for mobile -->
+      <button id="soundToggle" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.5); padding: 12px; border-radius: 5px; color: white; z-index: 100; cursor: pointer; border: none; font-size: 16px; -webkit-tap-highlight-color: rgba(255,255,255,0.3); min-width: 44px; min-height: 44px;">
         <span id="soundIcon">🔊</span>
-      </div>
+      </button>
       
-      <!-- Setup Page Link -->
-      <div id="setupLink" style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; color: white; z-index: 100; cursor: pointer;">
-        <a href="setup.html" style="color: white; text-decoration: none;">Customize Game</a>
-      </div>
+      <!-- Setup Page Link - Improved for mobile -->
+      <a href="javascript:void(0)" id="setupLink" style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.5); padding: 12px; border-radius: 5px; color: white; z-index: 100; cursor: pointer; text-decoration: none; font-size: 16px; display: block; -webkit-tap-highlight-color: rgba(255,255,255,0.3);">
+        Customize Game
+      </a>
+      
+      <script>
+        // Add event listeners for the customize button
+        document.addEventListener('DOMContentLoaded', function() {
+          const setupLink = document.getElementById('setupLink');
+          
+          // Function to navigate to setup page
+          const goToSetup = function(e) {
+            if (e) e.preventDefault();
+            console.log('Customize Game button clicked');
+            window.location.href = 'setup.html';
+          };
+          
+          // Add multiple event listeners for better mobile support
+          setupLink.addEventListener('click', goToSetup);
+          setupLink.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            setupLink.classList.add('active');
+          }, { passive: false });
+          setupLink.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            setupLink.classList.remove('active');
+            goToSetup();
+          }, { passive: false });
+        });
+      </script>
 
     </div>
 

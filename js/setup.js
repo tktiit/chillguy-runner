@@ -72,9 +72,27 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Handle file input changes
   Object.keys(fileInputs).forEach(key => {
+    // Make preview clickable to trigger file input on mobile
+    previews[key].addEventListener('click', () => {
+      fileInputs[key].click();
+    });
+    
+    // Add label for better touch targets
+    const label = document.querySelector(`label[for="${key}-image"]`);
+    if (label) {
+      label.addEventListener('click', (e) => {
+        // Prevent default to avoid double-triggering on some mobile browsers
+        e.preventDefault();
+        fileInputs[key].click();
+      });
+    }
+    
     fileInputs[key].addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (file) {
+        // Show loading indicator
+        previews[key].src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48c3R5bGU+QGtleWZyYW1lcyBzcGluIHtmcm9tIHt0cmFuc2Zvcm06IHJvdGF0ZSgwZGVnKX0gdG8ge3RyYW5zZm9ybTogcm90YXRlKDM2MGRlZyl9fSBjaXJjbGUge2FuaW1hdGlvbjogc3BpbiAxcyBsaW5lYXIgaW5maW5pdGU7IHRyYW5zZm9ybS1vcmlnaW46IDEycHggMTJweDt9PC9zdHlsZT48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzQ5OGRiIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1kYXNoYXJyYXk9IjMwIDE1Ii8+PC9zdmc+';
+        
         const reader = new FileReader();
         
         reader.onload = (event) => {
@@ -83,6 +101,12 @@ document.addEventListener('DOMContentLoaded', () => {
           
           // Store base64 data
           uploadedImages[key] = event.target.result;
+        };
+        
+        reader.onerror = () => {
+          // Show error in preview
+          previews[key].src = defaultPreviews[key];
+          alert(`Error reading ${key} image file. Please try again.`);
         };
         
         reader.readAsDataURL(file);
@@ -111,6 +135,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show loading indicator
     createGameLinkBtn.textContent = 'Creating link...';
     createGameLinkBtn.disabled = true;
+    createGameLinkBtn.classList.add('processing');
+    
+    // Add a loading overlay for mobile
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.className = 'loading-overlay';
+    loadingOverlay.innerHTML = '<div class="spinner"></div><p>Processing images...</p>';
+    document.body.appendChild(loadingOverlay);
     
     try {
       // Get game name (use default if empty)
@@ -139,6 +170,10 @@ document.addEventListener('DOMContentLoaded', () => {
           const promise = resizeImageData(uploadedImages[key], 400)
             .then(smallerImage => {
               gameData.images[key] = smallerImage;
+            })
+            .catch(err => {
+              console.error(`Error processing ${key} image:`, err);
+              // Continue without this image
             });
           imagePromises.push(promise);
         }
@@ -148,7 +183,32 @@ document.addEventListener('DOMContentLoaded', () => {
       await Promise.all(imagePromises);
       
       // Store the game data in localStorage
-      localStorage.setItem(`chillguy_game_${gameId}`, JSON.stringify(gameData));
+      try {
+        localStorage.setItem(`chillguy_game_${gameId}`, JSON.stringify(gameData));
+      } catch (storageError) {
+        console.error('Storage error:', storageError);
+        
+        // Try to clear some space by removing older games
+        const oldGames = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('chillguy_game_')) {
+            try {
+              const timestamp = key.split('_')[2] || 0;
+              oldGames.push({ key, timestamp });
+            } catch (e) {}
+          }
+        }
+        
+        // Sort by timestamp (oldest first) and remove up to 3 old games
+        oldGames.sort((a, b) => a.timestamp - b.timestamp);
+        for (let i = 0; i < Math.min(3, oldGames.length); i++) {
+          localStorage.removeItem(oldGames[i].key);
+        }
+        
+        // Try saving again
+        localStorage.setItem(`chillguy_game_${gameId}`, JSON.stringify(gameData));
+      }
       
       // Create shareable link with just the game ID
       const baseUrl = window.location.origin;
@@ -165,8 +225,10 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = shareableLink;
       };
       
-      // Scroll to share section
-      shareSection.scrollIntoView({ behavior: 'smooth' });
+      // Scroll to share section with a slight delay to ensure UI is updated
+      setTimeout(() => {
+        shareSection.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
       
       // Log success message
       console.log('Game link created successfully with ID:', gameId);
@@ -182,6 +244,12 @@ document.addEventListener('DOMContentLoaded', () => {
       // Reset button
       createGameLinkBtn.textContent = 'Create Game Link';
       createGameLinkBtn.disabled = false;
+      createGameLinkBtn.classList.remove('processing');
+      
+      // Remove loading overlay
+      if (document.querySelector('.loading-overlay')) {
+        document.querySelector('.loading-overlay').remove();
+      }
     }
   });
   

@@ -53,6 +53,28 @@ body {
   transition: filter 0.3s ease;
 }
 
+/* Mobile button styles */
+#soundToggle, #setupLink {
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  z-index: 1000 !important;
+}
+
+#soundToggle.active, #setupLink:active {
+  transform: scale(0.95);
+  background: rgba(0,0,0,0.7) !important;
+}
+
+/* Improved mobile touch targets */
+@media (max-width: 768px) {
+  #soundToggle, #setupLink {
+    padding: 15px !important;
+    min-width: 50px !important;
+    min-height: 50px !important;
+    font-size: 18px !important;
+  }
+}
+
 /* Loading screen animation */
 .loading-screen {
   position: fixed;

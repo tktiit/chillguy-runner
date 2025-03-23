@@ -150,16 +150,36 @@ window.onload = function () {
       // Initialize input handlers
       initInputHandlers();
       
-      // Set up sound toggle button
+      // Set up sound toggle button with improved mobile support
       let soundMuted = false;
       const soundToggle = document.getElementById("soundToggle");
       const soundIcon = document.getElementById("soundIcon");
       
-      soundToggle.addEventListener("click", function() {
+      // Function to toggle sound state
+      const toggleSound = function(e) {
+        // Prevent default behavior
+        if (e) e.preventDefault();
+        
+        // Toggle mute state
         soundMuted = !soundMuted;
         setMuted(soundMuted);
         soundIcon.textContent = soundMuted ? "🔇" : "🔊";
-      });
+        
+        // Add visual feedback
+        soundToggle.classList.add('active');
+        setTimeout(() => {
+          soundToggle.classList.remove('active');
+        }, 200);
+        
+        console.log('Sound toggle clicked, muted:', soundMuted);
+      };
+      
+      // Add multiple event listeners for better mobile support
+      soundToggle.addEventListener("click", toggleSound);
+      soundToggle.addEventListener("touchstart", toggleSound, { passive: false });
+      soundToggle.addEventListener("touchend", function(e) {
+        e.preventDefault(); // Prevent ghost clicks
+      }, { passive: false });
 
       // Start game loop
       gameLoop();
