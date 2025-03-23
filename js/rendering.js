@@ -4,7 +4,15 @@ import { drawTokens, drawObstacles, updateGameObjects } from './obstacles.js';
 import { updatePlayerPhysics, checkGameObjectCollisions } from './physics.js';
 import { roundedRect, drawImageCover, drawImageCoverAlignTop } from './utils.js';
 import { updatePlatforms, spawnPlatform } from './platforms.js';
-import { updateEffects, drawEffects, getChillMeterPulseColor } from './effects.js';
+import { 
+  updateEffects, 
+  drawEffects, 
+  getChillMeterPulseColor, 
+  isPlayerFlashActive, 
+  getPlayerFlashParams, 
+  resetScreenShake, 
+  getChillMeterDrainProgress 
+} from './effects.js';
 
 // We'll access gameState via a global reference to avoid circular imports
 
@@ -379,6 +387,39 @@ function drawRocket(x, y, size, opacity = 0.9, rotation = 0) {
 function drawPlayer() {
   if (gameState.gameOver) return;
 
+  // Save context for flash effect
+  gameState.ctx.save();
+
+  // Apply flash effect if active
+  if (isPlayerFlashActive()) {
+    const flashParams = getPlayerFlashParams();
+    
+    // Create a radial gradient for the glow effect
+    const centerX = gameState.player.x + gameState.player.width / 2;
+    const centerY = gameState.player.y + gameState.player.height / 2;
+    const radius = Math.max(gameState.player.width, gameState.player.height) / 2;
+    
+    // Draw outer glow
+    const glowGradient = gameState.ctx.createRadialGradient(
+      centerX, centerY, radius,
+      centerX, centerY, radius + flashParams.glowSize
+    );
+    
+    // Create a color gradient that transitions between the flash colors
+    glowGradient.addColorStop(0, `${flashParams.color}${Math.floor(flashParams.opacity * 255).toString(16).padStart(2, '0')}`);
+    glowGradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+    
+    gameState.ctx.globalCompositeOperation = 'lighter';
+    gameState.ctx.fillStyle = glowGradient;
+    gameState.ctx.beginPath();
+    gameState.ctx.arc(centerX, centerY, radius + flashParams.glowSize, 0, Math.PI * 2);
+    gameState.ctx.fill();
+    
+    // Reset composite operation and alpha
+    gameState.ctx.globalCompositeOperation = 'source-over';
+    gameState.ctx.globalAlpha = 1;
+  }
+
   if (
     gameState.images.player &&
     gameState.images.player.complete &&
@@ -435,6 +476,9 @@ function drawPlayer() {
       gameState.player.height * 0.6
     );
   }
+  
+  // Restore context after drawing player
+  gameState.ctx.restore();
 }
 
 // Draw the HUD (score, chill meter, etc.)
@@ -522,6 +566,41 @@ function drawHUD() {
     cornerRadius
   );
   gameState.ctx.fill();
+  
+  // Draw chill meter drain visualization if active
+  const drainProgress = getChillMeterDrainProgress();
+  if (drainProgress < 1) {
+    // Draw a red overlay that fades out as the animation progresses
+    const opacity = 0.7 * (1 - drainProgress);
+    gameState.ctx.fillStyle = `rgba(255, 0, 0, ${opacity})`;
+    
+    // Calculate the width of the drain chunk based on the progress
+    const drainWidth = fillWidth * 0.2; // 20% of the current fill
+    
+    // Position the drain chunk at the right end of the meter fill
+    const drainX = gameState.hud.x + fillWidth - drainWidth;
+    
+    // Draw the drain chunk with rounded corners on the right side only
+    gameState.ctx.beginPath();
+    gameState.ctx.moveTo(drainX, meterY);
+    gameState.ctx.lineTo(gameState.hud.x + fillWidth - cornerRadius, meterY);
+    gameState.ctx.quadraticCurveTo(
+      gameState.hud.x + fillWidth,
+      meterY,
+      gameState.hud.x + fillWidth,
+      meterY + cornerRadius
+    );
+    gameState.ctx.lineTo(gameState.hud.x + fillWidth, meterY + meterHeight - cornerRadius);
+    gameState.ctx.quadraticCurveTo(
+      gameState.hud.x + fillWidth,
+      meterY + meterHeight,
+      gameState.hud.x + fillWidth - cornerRadius,
+      meterY + meterHeight
+    );
+    gameState.ctx.lineTo(drainX, meterY + meterHeight);
+    gameState.ctx.closePath();
+    gameState.ctx.fill();
+  }
   
   // Add a subtle highlight to the top of the meter for 3D effect
   gameState.ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
@@ -760,6 +839,9 @@ function draw() {
   if (gameState.gameOver) {
     renderGameOverScreen();
   }
+  
+  // Reset screen shake if active (must be done at the end of drawing)
+  resetScreenShake(gameState.ctx);
 }
 
 export { 

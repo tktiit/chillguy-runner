@@ -80,6 +80,39 @@ const effects = {
     active: false,
     radius: 100, // Radius in which tokens are attracted to player
     strength: 2, // How strongly tokens are pulled
+  },
+  screenShake: {
+    active: false,
+    duration: 0,
+    maxDuration: 20, // Frames the shake will last
+    intensity: 0, // Maximum shake offset in pixels
+    offsetX: 0,
+    offsetY: 0
+  },
+  playerFlash: {
+    active: false,
+    duration: 0,
+    maxDuration: 30, // Frames the flash will last
+    pulseCount: 2, // Number of pulses during the flash
+    glowSize: 15, // Size of the glow effect in pixels
+    colors: ['#FF0000', '#FF5500', '#FFFFFF'] // Colors to cycle through (red, orange, white)
+  },
+  obstacleReaction: {
+    active: false,
+    obstacle: null,
+    duration: 0,
+    maxDuration: 30, // Frames the reaction will last
+    rotation: 0,
+    offsetX: 0,
+    offsetY: 0
+  },
+  chillMeterDrain: {
+    active: false,
+    duration: 0,
+    maxDuration: 30, // Frames the drain animation will last
+    amount: 0, // Amount being drained
+    startValue: 0, // Starting chill meter value
+    endValue: 0 // Ending chill meter value
   }
 };
 
@@ -133,6 +166,72 @@ function updateEffects() {
       effects.chillMeterPulse.active = false;
     }
   }
+  
+  // Update screen shake
+  if (effects.screenShake.active) {
+    effects.screenShake.duration--;
+    
+    // Calculate shake offset based on remaining duration
+    const progress = effects.screenShake.duration / effects.screenShake.maxDuration;
+    const intensity = effects.screenShake.intensity * progress;
+    
+    // Random shake offset that decreases over time
+    effects.screenShake.offsetX = (Math.random() * 2 - 1) * intensity;
+    effects.screenShake.offsetY = (Math.random() * 2 - 1) * intensity;
+    
+    if (effects.screenShake.duration <= 0) {
+      effects.screenShake.active = false;
+      effects.screenShake.offsetX = 0;
+      effects.screenShake.offsetY = 0;
+    }
+  }
+  
+  // Update player flash
+  if (effects.playerFlash.active) {
+    effects.playerFlash.duration--;
+    if (effects.playerFlash.duration <= 0) {
+      effects.playerFlash.active = false;
+    }
+  }
+  
+  // Update obstacle reaction
+  if (effects.obstacleReaction.active && effects.obstacleReaction.obstacle) {
+    effects.obstacleReaction.duration--;
+    
+    // Calculate reaction progress
+    const progress = effects.obstacleReaction.duration / effects.obstacleReaction.maxDuration;
+    const reverseProgress = 1 - progress;
+    
+    // Apply rotation and offset that decreases over time
+    effects.obstacleReaction.rotation = (Math.PI / 8) * Math.sin(progress * Math.PI * 4) * progress;
+    effects.obstacleReaction.offsetX = 15 * Math.cos(progress * Math.PI * 2) * reverseProgress;
+    effects.obstacleReaction.offsetY = -5 * reverseProgress;
+    
+    // Apply effects to the obstacle
+    if (effects.obstacleReaction.obstacle) {
+      effects.obstacleReaction.obstacle.rotation = effects.obstacleReaction.rotation;
+      effects.obstacleReaction.obstacle.reactionOffsetX = effects.obstacleReaction.offsetX;
+      effects.obstacleReaction.obstacle.reactionOffsetY = effects.obstacleReaction.offsetY;
+    }
+    
+    if (effects.obstacleReaction.duration <= 0) {
+      effects.obstacleReaction.active = false;
+      if (effects.obstacleReaction.obstacle) {
+        effects.obstacleReaction.obstacle.rotation = 0;
+        effects.obstacleReaction.obstacle.reactionOffsetX = 0;
+        effects.obstacleReaction.obstacle.reactionOffsetY = 0;
+      }
+      effects.obstacleReaction.obstacle = null;
+    }
+  }
+  
+  // Update chill meter drain
+  if (effects.chillMeterDrain.active) {
+    effects.chillMeterDrain.duration--;
+    if (effects.chillMeterDrain.duration <= 0) {
+      effects.chillMeterDrain.active = false;
+    }
+  }
 }
 
 // Draw all active effects
@@ -142,6 +241,16 @@ function drawEffects(ctx) {
   
   // Draw score popups
   effects.scorePopups.forEach(popup => popup.draw(ctx));
+  
+  // Apply screen shake to canvas if active
+  if (effects.screenShake.active) {
+    ctx.save();
+    ctx.translate(effects.screenShake.offsetX, effects.screenShake.offsetY);
+    // Note: We don't restore here as we want the shake to affect all subsequent drawing
+    // The restore will happen in the main draw function after all drawing is done
+  }
+  
+  // Draw player flash if active (this will be called separately in the player drawing function)
 }
 
 // Apply token magnetism
@@ -203,6 +312,147 @@ function disableTokenMagnetism() {
   effects.magnetism.active = false;
 }
 
+// Create impact particles at collision point
+function createImpactParticles(x, y, color = '#FF4500', count = 15) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 1 + Math.random() * 4;
+    const size = 2 + Math.random() * 4;
+    const life = 20 + Math.random() * 20;
+    
+    effects.particles.push(new Particle(
+      x,
+      y,
+      color,
+      size,
+      Math.cos(angle) * speed,
+      Math.sin(angle) * speed,
+      life
+    ));
+  }
+}
+
+// Activate screen shake effect
+function activateScreenShake(intensity = 10) {
+  effects.screenShake.active = true;
+  effects.screenShake.duration = effects.screenShake.maxDuration;
+  effects.screenShake.intensity = intensity;
+}
+
+// Activate player flash effect
+function activatePlayerFlash() {
+  effects.playerFlash.active = true;
+  effects.playerFlash.duration = effects.playerFlash.maxDuration;
+  
+  // Create additional impact particles for enhanced effect
+  const player = window.gameState.player;
+  const centerX = player.x + player.width / 2;
+  const centerY = player.y + player.height / 2;
+  
+  // Create a burst of white particles around the player
+  for (let i = 0; i < 10; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 5 + Math.random() * 15;
+    const x = centerX + Math.cos(angle) * distance;
+    const y = centerY + Math.sin(angle) * distance;
+    
+    effects.particles.push(new Particle(
+      x, y,
+      '#FFFFFF',
+      3 + Math.random() * 2,
+      Math.cos(angle) * 2,
+      Math.sin(angle) * 2,
+      15 + Math.random() * 10,
+      0.8
+    ));
+  }
+}
+
+// Activate obstacle reaction
+function activateObstacleReaction(obstacle) {
+  effects.obstacleReaction.active = true;
+  effects.obstacleReaction.obstacle = obstacle;
+  effects.obstacleReaction.duration = effects.obstacleReaction.maxDuration;
+}
+
+// Activate chill meter drain visualization
+function activateChillMeterDrain(startValue, endValue) {
+  effects.chillMeterDrain.active = true;
+  effects.chillMeterDrain.duration = effects.chillMeterDrain.maxDuration;
+  effects.chillMeterDrain.startValue = startValue;
+  effects.chillMeterDrain.endValue = endValue;
+  effects.chillMeterDrain.amount = startValue - endValue;
+}
+
+// Get current chill meter drain progress
+function getChillMeterDrainProgress() {
+  if (!effects.chillMeterDrain.active) return 1;
+  
+  const progress = effects.chillMeterDrain.duration / effects.chillMeterDrain.maxDuration;
+  return progress;
+}
+
+// Check if screen shake is active
+function isScreenShakeActive() {
+  return effects.screenShake.active;
+}
+
+// Check if player flash is active
+function isPlayerFlashActive() {
+  return effects.playerFlash.active;
+}
+
+// Get player flash parameters for rendering
+function getPlayerFlashParams() {
+  if (!effects.playerFlash.active) {
+    return {
+      active: false,
+      glowSize: 0,
+      color: 'rgba(255, 0, 0, 0)',
+      opacity: 0
+    };
+  }
+  
+  const progress = effects.playerFlash.duration / effects.playerFlash.maxDuration;
+  
+  // Calculate pulsing effect (oscillating between 0 and 1)
+  const pulseProgress = Math.sin(progress * Math.PI * 2 * effects.playerFlash.pulseCount);
+  const normalizedPulse = (pulseProgress + 1) / 2; // Convert from [-1, 1] to [0, 1]
+  
+  // Calculate color based on progress
+  const colorIndex = Math.floor(normalizedPulse * (effects.playerFlash.colors.length - 1));
+  const nextColorIndex = Math.min(colorIndex + 1, effects.playerFlash.colors.length - 1);
+  const colorProgress = normalizedPulse * (effects.playerFlash.colors.length - 1) - colorIndex;
+  
+  // Get base colors
+  const baseColor = effects.playerFlash.colors[colorIndex];
+  const nextColor = effects.playerFlash.colors[nextColorIndex];
+  
+  // Calculate glow size with pulsing effect
+  const maxGlowSize = effects.playerFlash.glowSize;
+  const glowSize = maxGlowSize * (0.5 + normalizedPulse * 0.5) * progress;
+  
+  // Base opacity that fades out over time
+  const opacity = Math.min(1, progress * 1.5);
+  
+  return {
+    active: true,
+    glowSize: glowSize,
+    color: baseColor,
+    nextColor: nextColor,
+    colorProgress: colorProgress,
+    opacity: opacity,
+    pulseProgress: normalizedPulse
+  };
+}
+
+// Reset canvas transform after screen shake
+function resetScreenShake(ctx) {
+  if (effects.screenShake.active) {
+    ctx.restore();
+  }
+}
+
 // Export functions
 export {
   createSparkleEffect,
@@ -214,5 +464,15 @@ export {
   getChillMeterPulseColor,
   enableTokenMagnetism,
   disableTokenMagnetism,
+  createImpactParticles,
+  activateScreenShake,
+  activatePlayerFlash,
+  activateObstacleReaction,
+  activateChillMeterDrain,
+  getPlayerFlashParams,
+  getChillMeterDrainProgress,
+  isScreenShakeActive,
+  isPlayerFlashActive,
+  resetScreenShake,
   effects
 };

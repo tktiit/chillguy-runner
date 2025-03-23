@@ -1,6 +1,17 @@
 import { CONFIG } from './config.js';
 import { playSound } from './sound.js';
-import { createSparkleEffect, createScorePopup, activateChillMeterPulse, applyTokenMagnetism, effects } from './effects.js';
+import { 
+  createSparkleEffect, 
+  createScorePopup, 
+  activateChillMeterPulse, 
+  applyTokenMagnetism, 
+  createImpactParticles, 
+  activateScreenShake, 
+  activatePlayerFlash, 
+  activateObstacleReaction, 
+  activateChillMeterDrain, 
+  effects 
+} from './effects.js';
 
 // We'll access gameState via a global reference to avoid circular imports
 
@@ -184,19 +195,44 @@ function checkGameObjectCollisions() {
       // Mark obstacle as hit
       obstacle.hit = true;
       
+      // Store current chill meter value before decrement for animation
+      const prevChillMeter = window.gameState.chillMeter;
+      
       // Decrease chill meter
       window.gameState.chillMeter -= CONFIG.CHILL_METER?.DECREMENT || 20;
       
       // Play obstacle hit sound
       playSound('obstacle');
       
-      // Remove obstacle after a short delay (for animation if needed)
+      // Calculate collision point (center of overlap between player and obstacle)
+      const collisionX = (window.gameState.player.x + window.gameState.player.width / 2 + 
+                         obstacle.x + obstacle.width / 2) / 2;
+      const collisionY = (window.gameState.player.y + window.gameState.player.height / 2 + 
+                         obstacle.y + obstacle.height / 2) / 2;
+      
+      // 1. Create impact particles at collision point
+      createImpactParticles(collisionX, collisionY, obstacle.color || '#FF4500');
+      
+      // 2. Activate screen shake (intensity based on obstacle size)
+      const shakeIntensity = Math.min(10, obstacle.width * obstacle.height / 100);
+      activateScreenShake(shakeIntensity);
+      
+      // 3. Activate player flash effect
+      activatePlayerFlash();
+      
+      // 4. Activate obstacle reaction
+      activateObstacleReaction(obstacle);
+      
+      // 5. Activate chill meter drain visualization
+      activateChillMeterDrain(prevChillMeter, window.gameState.chillMeter);
+      
+      // Remove obstacle after a longer delay to allow for animations
       setTimeout(() => {
         const index = window.gameState.obstacles.indexOf(obstacle);
         if (index !== -1) {
           window.gameState.obstacles.splice(index, 1);
         }
-      }, 100);
+      }, 500);
     }
   }
 
