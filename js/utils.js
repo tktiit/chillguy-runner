@@ -145,6 +145,7 @@ function loadImageWithFallbacks(basePath, callback) {
  * @param {function} callback - Callback function when all images are loaded
  */
 function preloadImages(gameState, callback) {
+  // Default images to load if not provided as custom images
   const imagesToLoad = [
     { name: 'player', path: 'assets/player' },
     { name: 'sky', path: 'assets/sky' },
@@ -155,16 +156,25 @@ function preloadImages(gameState, callback) {
     { name: 'platform', path: 'assets/platform' }
   ];
   
+  // Filter out any images that are already loaded as custom images
+  const imagesToLoadFiltered = imagesToLoad.filter(img => !gameState.customImages || !gameState.customImages[img.name]);
+  
+  // If all images are already loaded as custom images, call callback immediately
+  if (imagesToLoadFiltered.length === 0) {
+    if (callback) callback();
+    return;
+  }
+  
   let loadedCount = 0;
   
   function onImageLoaded() {
     loadedCount++;
-    if (loadedCount >= imagesToLoad.length) {
+    if (loadedCount >= imagesToLoadFiltered.length) {
       if (callback) callback();
     }
   }
   
-  imagesToLoad.forEach(img => {
+  imagesToLoadFiltered.forEach(img => {
     gameState.images[img.name] = loadImageWithFallbacks(img.path, (loadedImg) => {
       gameState.images[img.name] = loadedImg;
       onImageLoaded();

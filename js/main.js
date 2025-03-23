@@ -12,6 +12,7 @@ import {
   stopBackgroundMusic,
   setMuted,
 } from "./sound.js";
+import { loadCustomGameData } from "./gamedata.js";
 
 // We'll use window.gameState to avoid circular dependencies
 
@@ -130,6 +131,14 @@ window.onload = function () {
 
   // Load high score from local storage
   window.gameState.highScore = loadHighScore();
+  
+  // Check for custom game data in URL
+  loadCustomGameData(window.gameState);
+  
+  // Update page title if custom game name is set
+  if (window.gameState.gameName && window.gameState.gameName !== 'Chillguy Runner') {
+    document.title = window.gameState.gameName;
+  }
 
   // Initialize sound system first to ensure audio context is created on user interaction
   initSounds().then(() => {

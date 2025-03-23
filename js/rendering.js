@@ -425,6 +425,9 @@ function drawPlayer() {
     gameState.images.player.complete &&
     gameState.images.player.naturalWidth !== 0
   ) {
+    // Ensure we're using source-over composite operation for transparency
+    gameState.ctx.globalCompositeOperation = 'source-over';
+    
     // Use player sprite if available
     // If the image doesn't have multiple frames, just use the whole image
     if (gameState.images.player.width < gameState.images.player.height * 2) {

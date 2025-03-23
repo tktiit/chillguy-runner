@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test LocalStorage Game Data</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+    button {
+      padding: 10px 15px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    .image-preview {
+      max-width: 200px;
+      max-height: 150px;
+      margin: 10px;
+      border: 1px solid #ddd;
+      padding: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Test LocalStorage Game Data</h1>
+  
+  <h2>Current Game Data in LocalStorage</h2>
+  <div id="storage-data">Loading...</div>
+  
+  <h2>Actions</h2>
+  <button id="create-test-game">Create Test Game</button>
+  <button id="clear-storage">Clear All Game Data</button>
+  <button id="view-game">View Selected Game</button>
+  
+  <h2>Game Preview</h2>
+  <div id="game-preview">
+    <p>Select a game to preview</p>
+    <div id="preview-images"></div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const storageDataEl = document.getElementById('storage-data');
+      const createTestBtn = document.getElementById('create-test-game');
+      const clearStorageBtn = document.getElementById('clear-storage');
+      const viewGameBtn = document.getElementById('view-game');
+      const previewImagesEl = document.getElementById('preview-images');
+      
+      // Display current storage data
+      function refreshStorageData() {
+        const gameData = [];
+        let gameSelect = '<select id="game-select">';
+        
+        // Find all game data in localStorage
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.startsWith('chillguy_game_')) {
+            try {
+              const data = JSON.parse(localStorage.getItem(key));
+              gameData.push(data);
+              gameSelect += `<option value="${data.id}">${data.name}</option>`;
+            } catch (e) {
+              console.error('Error parsing game data:', e);
+            }
+          }
+        }
+        
+        gameSelect += '</select>';
+        
+        if (gameData.length === 0) {
+          storageDataEl.innerHTML = '<p>No game data found in localStorage</p>';
+        } else {
+          storageDataEl.innerHTML = `
+            <p>Found ${gameData.length} games in localStorage:</p>
+            ${gameSelect}
+            <pre>${JSON.stringify(gameData, null, 2)}</pre>
+          `;
+        }
+      }
+      
+      // Create a test game
+      createTestBtn.addEventListener('click', () => {
+        // Generate a unique game ID
+        const gameId = 'game_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now().toString(36);
+        
+        // Create test images
+        const images = {};
+        
+        // Create a simple canvas image for testing
+        function createTestImage(color, text) {
+          const canvas = document.createElement('canvas');
+          canvas.width = 200;
+          canvas.height = 150;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = color;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = 'white';
+          ctx.font = 'bold 20px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(text, canvas.width/2, canvas.height/2);
+          return canvas.toDataURL();
+        }
+        
+        // Create test images for each game element
+        images.player = createTestImage('#3498db', 'Player');
+        images.obstacle = createTestImage('#e74c3c', 'Obstacle');
+        images.token = createTestImage('#f1c40f', 'Token');
+        images.ground = createTestImage('#27ae60', 'Ground');
+        images.sky = createTestImage('#87CEEB', 'Sky');
+        
+        // Create game data
+        const gameData = {
+          id: gameId,
+          name: 'Test Game ' + new Date().toLocaleTimeString(),
+          images: images
+        };
+        
+        // Save to localStorage
+        localStorage.setItem(`chillguy_game_${gameId}`, JSON.stringify(gameData));
+        
+        alert('Test game created with ID: ' + gameId);
+        refreshStorageData();
+      });
+      
+      // Clear all game data
+      clearStorageBtn.addEventListener('click', () => {
+        if (confirm('Are you sure you want to clear all game data?')) {
+          // Remove only chillguy game data
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('chillguy_game_')) {
+              localStorage.removeItem(key);
+            }
+          }
+          
+          alert('All game data cleared');
+          refreshStorageData();
+          previewImagesEl.innerHTML = '';
+        }
+      });
+      
+      // View selected game
+      viewGameBtn.addEventListener('click', () => {
+        const select = document.getElementById('game-select');
+        if (!select) {
+          alert('No games available to view');
+          return;
+        }
+        
+        const gameId = select.value;
+        if (!gameId) {
+          alert('Please select a game to view');
+          return;
+        }
+        
+        // Get game data
+        const gameData = JSON.parse(localStorage.getItem(`chillguy_game_${gameId}`));
+        if (!gameData) {
+          alert('Game data not found');
+          return;
+        }
+        
+        // Display game images
+        previewImagesEl.innerHTML = '';
+        
+        if (gameData.images) {
+          Object.keys(gameData.images).forEach(key => {
+            const container = document.createElement('div');
+            container.style.display = 'inline-block';
+            container.style.textAlign = 'center';
+            
+            const label = document.createElement('p');
+            label.textContent = key.charAt(0).toUpperCase() + key.slice(1);
+            
+            const img = document.createElement('img');
+            img.src = gameData.images[key];
+            img.alt = key;
+            img.className = 'image-preview';
+            
+            container.appendChild(label);
+            container.appendChild(img);
+            previewImagesEl.appendChild(container);
+          });
+        }
+        
+        // Add play button
+        const playBtn = document.createElement('button');
+        playBtn.textContent = 'Play This Game';
+        playBtn.addEventListener('click', () => {
+          window.location.href = `index.html?game=${gameId}`;
+        });
+        previewImagesEl.appendChild(document.createElement('br'));
+        previewImagesEl.appendChild(playBtn);
+      });
+      
+      // Initial refresh
+      refreshStorageData();
+    });
+  </script>
+</body>
+</html>

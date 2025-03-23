@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chillguy Runner - Setup</title>
+  <link rel="stylesheet" href="css/setup.css">
+</head>
+<body>
+  <div class="setup-container">
+    <h1>Chillguy Runner - Custom Game Setup</h1>
+    
+    <div class="setup-form">
+      <div class="image-upload-section">
+        <h2>Upload Custom Game Assets</h2>
+        <p>Upload your own images to customize the game. All images are optional - default assets will be used for any missing images.</p>
+        
+        <div class="upload-row">
+          <div class="upload-item">
+            <label for="player-image">Player Character</label>
+            <div class="preview-container">
+              <img id="player-preview" class="image-preview" src="img/default-preview/player.png" alt="Player Preview">
+            </div>
+            <input type="file" id="player-image" accept="image/*">
+            <button class="clear-btn" data-target="player">Clear</button>
+          </div>
+          
+          <div class="upload-item">
+            <label for="obstacle-image">Obstacle</label>
+            <div class="preview-container">
+              <img id="obstacle-preview" class="image-preview" src="img/default-preview/obstacle.png" alt="Obstacle Preview">
+            </div>
+            <input type="file" id="obstacle-image" accept="image/*">
+            <button class="clear-btn" data-target="obstacle">Clear</button>
+          </div>
+          
+          <div class="upload-item">
+            <label for="token-image">Token</label>
+            <div class="preview-container">
+              <img id="token-preview" class="image-preview" src="img/default-preview/token.png" alt="Token Preview">
+            </div>
+            <input type="file" id="token-image" accept="image/*">
+            <button class="clear-btn" data-target="token">Clear</button>
+          </div>
+        </div>
+        
+        <div class="upload-row">
+          <div class="upload-item wide">
+            <label for="ground-image">Ground</label>
+            <div class="preview-container wide">
+              <img id="ground-preview" class="image-preview wide" src="img/default-preview/ground.png" alt="Ground Preview">
+            </div>
+            <input type="file" id="ground-image" accept="image/*">
+            <button class="clear-btn" data-target="ground">Clear</button>
+          </div>
+          
+          <div class="upload-item wide">
+            <label for="sky-image">Sky</label>
+            <div class="preview-container wide">
+              <img id="sky-preview" class="image-preview wide" src="img/default-preview/sky.png" alt="Sky Preview">
+            </div>
+            <input type="file" id="sky-image" accept="image/*">
+            <button class="clear-btn" data-target="sky">Clear</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="game-options">
+        <h2>Game Options</h2>
+        <div class="option-row">
+          <label for="game-name">Game Name:</label>
+          <input type="text" id="game-name" placeholder="My Custom Chillguy Game">
+        </div>
+      </div>
+      
+      <div class="buttons-container">
+        <button id="create-game-link" class="primary-btn">Create Game Link</button>
+        <a href="index.html" class="secondary-btn">Back to Game</a>
+      </div>
+      
+      <div id="share-section" class="share-section hidden">
+        <h2>Share Your Custom Game</h2>
+        <p>Copy this link to share your custom game with friends:</p>
+        <div class="share-link-container">
+          <input type="text" id="share-link" readonly>
+          <button id="copy-link" class="copy-btn">Copy</button>
+        </div>
+        <button id="play-game" class="primary-btn">Play Now</button>
+      </div>
+    </div>
+  </div>
+  
+  <script src="js/setup.js"></script>
+</body>
+</html>

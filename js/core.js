@@ -21,6 +21,8 @@ window.gameState = {
   showMountains: CONFIG.SHOW_MOUNTAINS,
   groundPattern: null,
   images: {},
+  customImages: {}, // For storing custom images from setup page
+  gameName: 'Chillguy Runner', // Default game name
   hud: {
     x: 0,
     y: 0,

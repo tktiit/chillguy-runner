@@ -105,6 +105,9 @@ function drawTokens() {
       window.gameState.images.token.complete &&
       window.gameState.images.token.naturalWidth !== 0
     ) {
+      // Ensure we're using source-over composite operation for transparency
+      window.gameState.ctx.globalCompositeOperation = 'source-over';
+      
       window.gameState.ctx.drawImage(
         window.gameState.images.token,
         -token.width / 2,
@@ -142,6 +145,9 @@ function drawObstacles() {
       window.gameState.images.obstacle.complete &&
       window.gameState.images.obstacle.naturalWidth !== 0
     ) {
+      // Ensure we're using source-over composite operation for transparency
+      window.gameState.ctx.globalCompositeOperation = 'source-over';
+      
       window.gameState.ctx.drawImage(
         window.gameState.images.obstacle,
         obstacle.x,
