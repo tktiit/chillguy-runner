@@ -8,6 +8,7 @@ import {
   createImpactParticles, 
   activateScreenShake, 
   activatePlayerFlash, 
+  activatePlayerShake, 
   activateObstacleReaction, 
   activateChillMeterDrain, 
   effects 
@@ -219,6 +220,9 @@ function checkGameObjectCollisions() {
       
       // 3. Activate player flash effect
       activatePlayerFlash();
+      
+      // 3.5. Activate player shake effect
+      activatePlayerShake(shakeIntensity * 0.8);
       
       // 4. Activate obstacle reaction
       activateObstacleReaction(obstacle);

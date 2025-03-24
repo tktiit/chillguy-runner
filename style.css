@@ -112,6 +112,33 @@ body {
   color: var(--primary-dark);
   text-shadow: 2px 2px 4px var(--shadow-color);
   animation: pulse 1.5s infinite;
+  margin-bottom: 20px;
+}
+
+.loading-progress-container {
+  width: 80%;
+  max-width: 400px;
+  height: 20px;
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px var(--shadow-color);
+  margin-bottom: 10px;
+}
+
+.loading-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(to right, var(--primary-light), var(--primary-color));
+  border-radius: 10px;
+  transition: width 0.3s ease;
+}
+
+.loading-percentage {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--primary-dark);
+  margin-top: 5px;
 }
 
 /* Game UI elements */

@@ -32,6 +32,10 @@
     <div id="loadingScreen" class="loading-screen">
       <div class="loading-icon"></div>
       <div class="loading-text">Loading Chill Runner...</div>
+      <div class="loading-progress-container">
+        <div id="loadingProgressBar" class="loading-progress-bar"></div>
+      </div>
+      <div id="loadingPercentage" class="loading-percentage">0%</div>
     </div>
 
     <!-- Game Container -->
@@ -44,9 +48,9 @@
         <span id="soundIcon">🔊</span>
       </button>
       
-      <!-- Setup Page Link - Improved for mobile -->
-      <a href="javascript:void(0)" id="setupLink" style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.5); padding: 12px; border-radius: 5px; color: white; z-index: 100; cursor: pointer; text-decoration: none; font-size: 16px; display: block; -webkit-tap-highlight-color: rgba(255,255,255,0.3);">
-        Customize Game
+      <!-- Settings Icon - Improved for mobile -->
+      <a href="javascript:void(0)" id="setupLink" style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.5); padding: 12px; border-radius: 5px; color: white; z-index: 100; cursor: pointer; text-decoration: none; font-size: 20px; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; -webkit-tap-highlight-color: rgba(255,255,255,0.3);">
+        ⚙️
       </a>
       
       <script>

@@ -161,19 +161,49 @@ function preloadImages(gameState, callback) {
   
   // If all images are already loaded as custom images, call callback immediately
   if (imagesToLoadFiltered.length === 0) {
+    updateLoadingProgress(100); // Show 100% complete
     if (callback) callback();
     return;
   }
   
   let loadedCount = 0;
+  const totalImages = imagesToLoadFiltered.length;
+  
+  // Get loading progress elements
+  const loadingPercentage = document.getElementById('loadingPercentage');
+  const loadingProgressBar = document.getElementById('loadingProgressBar');
+  
+  // Function to update loading progress UI
+  function updateLoadingProgress(percent) {
+    // Update text percentage
+    if (loadingPercentage) {
+      loadingPercentage.textContent = `${Math.round(percent)}%`;
+    }
+    
+    // Update progress bar width
+    if (loadingProgressBar) {
+      loadingProgressBar.style.width = `${percent}%`;
+    }
+    
+    console.log(`Loading progress: ${Math.round(percent)}%`);
+  }
   
   function onImageLoaded() {
     loadedCount++;
-    if (loadedCount >= imagesToLoadFiltered.length) {
+    
+    // Calculate and update loading progress
+    const progress = (loadedCount / totalImages) * 100;
+    updateLoadingProgress(progress);
+    
+    if (loadedCount >= totalImages) {
       if (callback) callback();
     }
   }
   
+  // Initialize progress at 0%
+  updateLoadingProgress(0);
+  
+  // Load each image with fallbacks
   imagesToLoadFiltered.forEach(img => {
     gameState.images[img.name] = loadImageWithFallbacks(img.path, (loadedImg) => {
       gameState.images[img.name] = loadedImg;

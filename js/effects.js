@@ -97,6 +97,14 @@ const effects = {
     glowSize: 15, // Size of the glow effect in pixels
     colors: ['#FF0000', '#FF5500', '#FFFFFF'] // Colors to cycle through (red, orange, white)
   },
+  playerShake: {
+    active: false,
+    duration: 0,
+    maxDuration: 15, // Frames the player shake will last
+    intensity: 5, // Maximum shake offset in pixels
+    offsetX: 0,
+    offsetY: 0
+  },
   obstacleReaction: {
     active: false,
     obstacle: null,
@@ -191,6 +199,25 @@ function updateEffects() {
     effects.playerFlash.duration--;
     if (effects.playerFlash.duration <= 0) {
       effects.playerFlash.active = false;
+    }
+  }
+  
+  // Update player shake
+  if (effects.playerShake.active) {
+    effects.playerShake.duration--;
+    
+    // Calculate shake offset based on remaining duration
+    const progress = effects.playerShake.duration / effects.playerShake.maxDuration;
+    const intensity = effects.playerShake.intensity * progress;
+    
+    // Random shake offset that decreases over time
+    effects.playerShake.offsetX = (Math.random() * 2 - 1) * intensity;
+    effects.playerShake.offsetY = (Math.random() * 2 - 1) * intensity;
+    
+    if (effects.playerShake.duration <= 0) {
+      effects.playerShake.active = false;
+      effects.playerShake.offsetX = 0;
+      effects.playerShake.offsetY = 0;
     }
   }
   
@@ -368,6 +395,13 @@ function activatePlayerFlash() {
   }
 }
 
+// Activate player shake effect
+function activatePlayerShake(intensity = 5) {
+  effects.playerShake.active = true;
+  effects.playerShake.duration = effects.playerShake.maxDuration;
+  effects.playerShake.intensity = intensity;
+}
+
 // Activate obstacle reaction
 function activateObstacleReaction(obstacle) {
   effects.obstacleReaction.active = true;
@@ -453,6 +487,26 @@ function resetScreenShake(ctx) {
   }
 }
 
+// Check if player shake is active
+function isPlayerShakeActive() {
+  return effects.playerShake.active;
+}
+
+// Get player shake parameters for rendering
+function getPlayerShakeParams() {
+  if (!effects.playerShake.active) {
+    return {
+      offsetX: 0,
+      offsetY: 0
+    };
+  }
+  
+  return {
+    offsetX: effects.playerShake.offsetX,
+    offsetY: effects.playerShake.offsetY
+  };
+}
+
 // Export functions
 export {
   createSparkleEffect,
@@ -467,12 +521,15 @@ export {
   createImpactParticles,
   activateScreenShake,
   activatePlayerFlash,
+  activatePlayerShake,
   activateObstacleReaction,
   activateChillMeterDrain,
   getPlayerFlashParams,
+  getPlayerShakeParams,
   getChillMeterDrainProgress,
   isScreenShakeActive,
   isPlayerFlashActive,
+  isPlayerShakeActive,
   resetScreenShake,
   effects
 };

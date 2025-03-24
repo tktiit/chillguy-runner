@@ -10,6 +10,8 @@ import {
   getChillMeterPulseColor, 
   isPlayerFlashActive, 
   getPlayerFlashParams, 
+  isPlayerShakeActive,
+  getPlayerShakeParams,
   resetScreenShake, 
   getChillMeterDrainProgress 
 } from './effects.js';
@@ -387,8 +389,15 @@ function drawRocket(x, y, size, opacity = 0.9, rotation = 0) {
 function drawPlayer() {
   if (gameState.gameOver) return;
 
-  // Save context for flash effect
+  // Save context for flash effect and shake effect
   gameState.ctx.save();
+  
+  // Apply shake effect if active
+  if (isPlayerShakeActive()) {
+    const shakeParams = getPlayerShakeParams();
+    // Apply the shake offset to the player's position when drawing
+    gameState.ctx.translate(shakeParams.offsetX, shakeParams.offsetY);
+  }
 
   // Apply flash effect if active
   if (isPlayerFlashActive()) {
